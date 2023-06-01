@@ -3,17 +3,17 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
-import functorch as ftorch
-from spectre.model._dyn_models import _dyn_models
-from util.util_funs import dynm_fun
+import torch.func as ftorch
+from ._dyn_models import _dyn_models
+from spectre.util.util_funs import dynm_fun
 import scipy.signal
 from torchdiffeq import odeint
 from torchsde import sdeint
 import matplotlib.pyplot as plt
-from util.simulation_class import SDE
-from spectrum_general.matrix_spectrum import matrix_solution
-from spectrum_general.sim_spectrum import sim_solution
-from spectrum_general.spectrum import PSD
+from spectre.util.simulation_class import SDE
+from spectre.spectrum_general.matrix_spectrum import matrix_solution
+from spectre.spectrum_general.sim_spectrum import sim_solution
+from spectre.spectrum_general.spectrum import element_wise
 import os
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
@@ -22,9 +22,9 @@ os.environ['KMP_DUPLICATE_LIB_OK']='True'
 device = torch.device("cpu")
 
 
-class SSN_new(_dyn_models):
+class SSN(_dyn_models):
     def __init__(self, N=11, length=9, c=50, eta=0.01):
-        super(SSN_new, self).__init__()
+        super(SSN, self).__init__()
         """
         This function initializes the various parameters of the SSN model. See 
         supplementary material for details.
@@ -280,7 +280,7 @@ class SSN_new(_dyn_models):
         """
         x = delta_x * torch.linspace(1, N, N) - (N+1)/2
         x = torch.reshape(x, (N, 1))
-        W = J * SSN_new.gaussian(x, x.T, sigma)
+        W = J * SSN.gaussian(x, x.T, sigma)
         return W
 
     @staticmethod

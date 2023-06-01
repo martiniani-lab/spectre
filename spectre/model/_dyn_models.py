@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import torch
 from scipy import linalg
-import functorch as ftorch
+import torch.func as ftorch
 from spectre.spectrum_general.sim_spectrum import sim_solution
 
 

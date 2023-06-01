@@ -2,7 +2,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import functorch as ftorch
+import torch.func as ftorch
 import math
 from ._dyn_models import _dyn_models
 from spectre.util.util_funs import dynm_fun
@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from spectre.util.simulation_class import SDE
 from spectre.spectrum_general.matrix_spectrum import matrix_solution
 from spectre.spectrum_general.sim_spectrum import sim_solution
-from spectre.spectrum_general.spectrum import PSD
+from spectre.spectrum_general.spectrum import element_wise
 import os
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'

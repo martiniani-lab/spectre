@@ -2,18 +2,18 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import functorch as ftorch
-from spectre.model._dyn_models import _dyn_models
-from util.util_funs import dynm_fun
+import torch.func as ftorch
+from ._dyn_models import _dyn_models
+from spectre.util.util_funs import dynm_fun
 import math
 import scipy.signal
 from torchdiffeq import odeint
 from torchsde import sdeint
 import matplotlib.pyplot as plt
-from util.simulation_class import SDE
-from spectrum_general.matrix_spectrum import matrix_solution
-from spectrum_general.sim_spectrum import sim_solution
-from spectrum_general.spectrum import PSD
+from spectre.util.simulation_class import SDE
+from spectre.spectrum_general.matrix_spectrum import matrix_solution
+from spectre.spectrum_general.sim_spectrum import sim_solution
+from spectre.spectrum_general.spectrum import element_wise
 import os
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'

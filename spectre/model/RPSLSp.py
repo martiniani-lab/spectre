@@ -3,14 +3,14 @@ import numpy as np
 import torch
 import scipy.signal
 from torchsde import sdeint
-import functorch as ftorch
+import torch.func as ftorch
 import os
-from _dyn_models import _dyn_models
-from util.util_funs import dynm_fun
-from util.simulation_class import SDE
-from spectrum_general.matrix_spectrum import matrix_solution
-from spectrum_general.sim_spectrum import sim_solution
-from spectrum_general.spectrum import PSD
+from ._dyn_models import _dyn_models
+from spectre.util.util_funs import dynm_fun
+from spectre.util.simulation_class import SDE
+from spectre.spectrum_general.matrix_spectrum import matrix_solution
+from spectre.spectrum_general.sim_spectrum import sim_solution
+from spectre.spectrum_general.spectrum import element_wise
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 

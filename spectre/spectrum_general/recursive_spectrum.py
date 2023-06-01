@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-import functorch as ftorch
+import torch.func as ftorch
 import sympy as sp
 import os
 import timeit

@@ -4,9 +4,7 @@ import torch
 import matplotlib.pyplot as plt
 import math
 import mpmath
-import functorch as ftorch
-from joblib import Parallel, delayed
-from joblib import load, dump
+import torch.func as ftorch
 import sympy as sp
 import os
 import timeit

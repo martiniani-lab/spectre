@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-import functorch as ftorch
+import torch.func as ftorch
 import os
 import timeit
 from functools import lru_cache

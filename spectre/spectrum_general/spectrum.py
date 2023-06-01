@@ -2,10 +2,9 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import math
-import functorch as ftorch
+import torch.func as ftorch
 import sympy as sp
 import os
-# import symengine as sp
 import timeit
 from functools import lru_cache
 
@@ -18,7 +17,7 @@ device = torch.device("cpu")
 # n_cores = 1
 
 
-class PSD:
+class element_wise:
     def __init__(self, J=-torch.eye(3), L=torch.eye(3), S=torch.eye(3)):
         """
         In this constructor function, we define and assign the different matrices "O"
@@ -67,7 +66,7 @@ class PSD:
         """
         # Define the tensor storing the O matrices required for the solution, we first
         self.O = J.repeat(self.n, self.n, 1, 1)[idx].reshape(self.n, self.n, self.n - 1, self.n - 1)
-        self.O = ftorch.vmap(PSD.make_O, in_dims=(0, 0, 0))(
+        self.O = ftorch.vmap(element_wise.make_O, in_dims=(0, 0, 0))(
             self.O.reshape(-1, self.n - 1, self.n - 1),
             index_row.reshape(-1, self.n - 1), index_col.reshape(-1, self.n - 1))
         self.O = self.O.reshape(self.n, self.n, self.n - 1, self.n - 1).numpy()
@@ -499,37 +498,37 @@ class PSD:
         See SI for definition.
         """
         # Calculate minor about l,l element
-        B = PSD.excluded_mat(A, l)
+        B = element_wise.excluded_mat(A, l)
         return self.d(A, alpha) + self.d(B, alpha - 1) + self.g_2(A, B, alpha)
 
     def _s_1(self, A, B, l, alpha):
         """
         See SI for definition.
         """
-        C = PSD.excluded_mat(B, l)
+        C = element_wise.excluded_mat(B, l)
         return self.h_1(A, B, alpha) + self.g_2(A, C, alpha)
 
     def _s_2(self, A, B, l, alpha):
         """
         See SI for definition.
         """
-        C = PSD.excluded_mat(B, l)
+        C = element_wise.excluded_mat(B, l)
         return - self.h_2(A, B, alpha) + self.g_1(A, C, alpha)
 
     def _t_1(self, A, B, l1, l2, alpha):
         """
         See SI for definition.
         """
-        C = PSD.excluded_mat(A, l1)
-        D = PSD.excluded_mat(B, l2)
+        C = element_wise.excluded_mat(A, l1)
+        D = element_wise.excluded_mat(B, l2)
         return self.h_1(A, B, alpha) + self.h_1(C, D, alpha - 1) + self.g_2(B, C, alpha) + self.g_2(A, D, alpha)
 
     def _t_2(self, A, B, l1, l2, alpha):
         """
         See SI for definition.
         """
-        C = PSD.excluded_mat(A, l1)
-        D = PSD.excluded_mat(B, l2)
+        C = element_wise.excluded_mat(A, l1)
+        D = element_wise.excluded_mat(B, l2)
         return - self.h_2(A, B, alpha) - self.h_2(C, D, alpha - 1) - self.g_1(B, C, alpha) + self.g_1(A, D, alpha)
 
     def _bell_inp(self, mat, kappa, k):
@@ -556,7 +555,7 @@ class PSD:
                 else:
                     B_k[i, j] = x[j - i]
         # return sp.det(B_k)
-        return PSD.hessenberg_det(B_k)
+        return element_wise.hessenberg_det(B_k)
 
     def _r_k(self, mat, kappa, k):
         """
@@ -576,9 +575,9 @@ class PSD:
         elif p == 1:
             return mat
         elif p % 2 == 0:
-            return PSD.mat_power(mat * mat, p / 2)
+            return element_wise.mat_power(mat * mat, p / 2)
         else:
-            return mat * PSD.mat_power(mat * mat, (p - 1) / 2)
+            return mat * element_wise.mat_power(mat * mat, (p - 1) / 2)
 
         # return mat**p
 
