@@ -36,3 +36,4 @@ if not os.path.exists('figures/SSN'):
 if not os.path.exists('figures/WC4D'):
     os.mkdir('figures/WC4D')
     print("Created figures/WC4D directory")
+
