@@ -130,31 +130,6 @@ class matrix_solution:
             coh[k] = torch.squeeze(torch.abs(S[k, i, j])**2 / (torch.real(S[k, i, i]) * torch.real(S[k, j, j])))
         return coh.cpu(), freq
 
-    def plot_auto_spectrum(self, i=None, freq=None, J=None, path=None):
-        """
-        Plot the PSD for the variable of a given index.
-        :return: None
-        """
-        spect, freq = self.auto_spectrum(i, freq, J)
-
-        fig = plt.figure(3)
-        plt.title(f'PSD of the center variable', fontdict={'fontsize': 20})
-        plt.loglog(freq, spect, linewidth=3.0)
-        plt.xlabel("Frequency (Hz)", fontdict={'fontsize': 20})
-        plt.ylabel("Power Spectral Density", fontdict={'fontsize': 20})
-        plt.tick_params(axis='both', which='major', labelsize=18)
-        plt.show()
-
 
 if __name__ == '__main__':
-    J = torch.randn((10, 10), device=device)
-    L, V = torch.linalg.eig(J)
-    L = - torch.abs(torch.real(L)) + 1j * torch.imag(L)
-    J = V @ torch.diag(L) @ torch.linalg.inv(V)
-    L = torch.eye(10, device=device)
-    S = torch.eye(10, device=device)
-    net = matrix_solution(J, L, S)
-    spect_mat = net.spectral_matrix()
-    spect, freq = net.auto_spectrum()
-    plt.loglog(freq, spect)
-    plt.show()
+    pass

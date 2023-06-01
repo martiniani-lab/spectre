@@ -4,16 +4,16 @@ import torch
 import torch.nn as nn
 import functorch as ftorch
 import math
-from model.dyn_models import dyn_models
-from util.util_funs import dynm_fun
+from ._dyn_models import _dyn_models
+from spectre.util.util_funs import dynm_fun
 import scipy.signal
 from torchdiffeq import odeint
 from torchsde import sdeint
 import matplotlib.pyplot as plt
-from util.simulation_class import SDE
-from spectrum_general.matrix_spectrum import matrix_solution
-from spectrum_general.sim_spectrum import sim_solution
-from spectrum_general.spectrum import PSD
+from spectre.util.simulation_class import SDE
+from spectre.spectrum_general.matrix_spectrum import matrix_solution
+from spectre.spectrum_general.sim_spectrum import sim_solution
+from spectre.spectrum_general.spectrum import PSD
 import os
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
@@ -22,7 +22,7 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 device = torch.device("cpu")
 
 
-class FHN(dyn_models):
+class FHN(_dyn_models):
     def __init__(self, I=0.265, eta1=0, eta2=0.001):
         super(FHN, self).__init__()
         """
@@ -216,10 +216,4 @@ class FHN(dyn_models):
 
 
 if __name__ == '__main__':
-    # create the circuit
-    net = FHN()
-    t = torch.linspace(0, 1, 10000)
-    sim = net.simulate(t)
-    # plot the results
-    plt.plot(t, sim[:, 0:net.N])
-    plt.show()
+    pass

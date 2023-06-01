@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 import torch
 from scipy import linalg
 import functorch as ftorch
-from spectrum_general.sim_spectrum import sim_solution
+from spectre.spectrum_general.sim_spectrum import sim_solution
 
 
-class dyn_models(ABC):
+class _dyn_models(ABC):
     def __init__(self):
         """Dimensionality of the system"""
         self.dim = None
@@ -76,3 +76,4 @@ class dyn_models(ABC):
         J = ftorch.jacrev(self._dynamical_fun, argnums=1)(0, ss)
         self.J = J
         return J
+
