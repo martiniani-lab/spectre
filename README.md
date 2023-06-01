@@ -6,6 +6,6 @@ The folder 'spectrum_general' contains clasees to calculate the spectrum of an L
 
 The folder 'model_classes' contains classes for the individual models described by nonlinear SDEs exhibiting a fixed point solution. 
 
-The folder 'plotting_scripts' contains jupyter notebooks used to generate the plots for each model.
+The folder 'plotting_scripts' contains jupyter notebooks used to generate the plots for the models.
 
 
