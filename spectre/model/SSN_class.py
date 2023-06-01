@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 import functorch as ftorch
-from model.dyn_models import dyn_models
+from spectre.model._dyn_models import _dyn_models
 from util.util_funs import dynm_fun
 import scipy.signal
 from torchdiffeq import odeint
@@ -22,7 +22,7 @@ os.environ['KMP_DUPLICATE_LIB_OK']='True'
 device = torch.device("cpu")
 
 
-class SSN_new(dyn_models):
+class SSN_new(_dyn_models):
     def __init__(self, N=11, length=9, c=50, eta=0.01):
         super(SSN_new, self).__init__()
         """
@@ -374,10 +374,4 @@ class SSN_new(dyn_models):
 
 
 if __name__ == '__main__':
-    # create the network
-    net = SSN_new()
-    t = torch.linspace(0, 1, 10000)
-    sim = net.simulate(t)
-    # plot the results
-    plt.plot(t, sim[:, 0:net.N])
-    plt.show()
+    pass

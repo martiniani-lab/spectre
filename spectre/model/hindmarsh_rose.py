@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import functorch as ftorch
-from model.dyn_models import dyn_models
+from spectre.model._dyn_models import _dyn_models
 from util.util_funs import dynm_fun
 import math
 import scipy.signal
@@ -22,7 +22,7 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 device = torch.device("cpu")
 
 
-class HR(dyn_models):
+class HR(_dyn_models):
     def __init__(self, I=3.5, eta1=0.001):
         super(HR, self).__init__()
         """
@@ -219,10 +219,4 @@ class HR(dyn_models):
 
 
 if __name__ == '__main__':
-    # create the circuit
-    net = HR()
-    t = torch.linspace(0, 1, 10000)
-    sim = net.simulate(t)
-    # plot the results
-    plt.plot(t, sim[:, 0:net.N])
-    plt.show()
+    pass

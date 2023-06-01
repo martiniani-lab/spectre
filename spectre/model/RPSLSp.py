@@ -5,7 +5,7 @@ import scipy.signal
 from torchsde import sdeint
 import functorch as ftorch
 import os
-from model.dyn_models import dyn_models
+from _dyn_models import _dyn_models
 from util.util_funs import dynm_fun
 from util.simulation_class import SDE
 from spectrum_general.matrix_spectrum import matrix_solution
@@ -18,7 +18,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 device = torch.device("cpu")
 
 
-class RPS(dyn_models):
+class RPS(_dyn_models):
     def __init__(self, N, mu=0, eta=0.01, noise_type="multiplicative"):
         super(RPS, self).__init__()
         """
@@ -214,7 +214,4 @@ class RPS(dyn_models):
 
 
 if __name__ == "__main__":
-    n = 5 # dim of the system
-    rps = RPS(n)
-    print(rps.payoff)
-    rps.mu = 0.01
+    pass
