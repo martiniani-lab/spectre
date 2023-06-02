@@ -4,7 +4,7 @@ import torch
 import matplotlib.pyplot as plt
 from torchdiffeq import odeint
 from torchsde import sdeint
-from spectre.util.simulation_class import SDE, SDE_mul, SDE_cor_mul
+from spectre.utils.simulation_class import SDE, SDE_mul, SDE_cor_mul
 import scipy.signal
 
 

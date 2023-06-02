@@ -6,8 +6,8 @@ from torchsde import sdeint
 import torch.func as ftorch
 import os
 from ._dyn_models import _dyn_models
-from spectre.util.util_funs import dynm_fun
-from spectre.util.simulation_class import SDE
+from spectre.utils.util_funs import dynm_fun
+from spectre.utils.simulation_class import SDE
 from spectre.spectrum_general.matrix_spectrum import matrix_solution
 from spectre.spectrum_general.sim_spectrum import sim_solution
 from spectre.spectrum_general.spectrum import element_wise

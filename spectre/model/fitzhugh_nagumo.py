@@ -5,12 +5,12 @@ import torch.nn as nn
 import torch.func as ftorch
 import math
 from ._dyn_models import _dyn_models
-from spectre.util.util_funs import dynm_fun
+from spectre.utils.util_funs import dynm_fun
 import scipy.signal
 from torchdiffeq import odeint
 from torchsde import sdeint
 import matplotlib.pyplot as plt
-from spectre.util.simulation_class import SDE
+from spectre.utils.simulation_class import SDE
 from spectre.spectrum_general.matrix_spectrum import matrix_solution
 from spectre.spectrum_general.sim_spectrum import sim_solution
 from spectre.spectrum_general.spectrum import element_wise
