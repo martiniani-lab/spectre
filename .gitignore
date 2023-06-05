@@ -1,3 +1,6 @@
 !/model_classes/ill_conditioned.ipynb
 .idea
 spectre/__pycache__
+spectre/spectrum_general/__pycache__
+spectre/model/__pycache__
+spectre/utils/__pycache__
