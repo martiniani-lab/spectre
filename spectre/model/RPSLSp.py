@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import scipy.signal
 from torchsde import sdeint
-import torch.func as ftorch
+from torch.func import jacrev
 import os
 from ._dyn_models import _dyn_models
 from spectre.utils.util_funs import dynm_fun
@@ -146,7 +146,7 @@ class RPS(_dyn_models):
         """
         Calculates the Jacobian of the dynamical system using torch autograd.
         """
-        J = ftorch.jacrev(self._dynamical_fun, argnums=1)(0, ss)
+        J = jacrev(self._dynamical_fun, argnums=1)(0, ss)
         self.J = J
         return J
 

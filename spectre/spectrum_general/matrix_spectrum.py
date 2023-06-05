@@ -4,7 +4,7 @@ import torch
 import matplotlib.pyplot as plt
 import math
 import mpmath
-import torch.func as ftorch
+from torch.func import jacrev
 import sympy as sp
 import os
 import timeit

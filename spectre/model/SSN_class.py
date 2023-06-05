@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
-import torch.func as ftorch
+from torch.func import jacrev
 from ._dyn_models import _dyn_models
 from spectre.utils.util_funs import dynm_fun
 import scipy.signal

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import torch
 from scipy import linalg
-import torch.func as ftorch
+from torch.func import jacrev
 from spectre.spectrum_general.sim_spectrum import sim_solution
 
 
@@ -73,7 +73,7 @@ class _dyn_models(ABC):
         """
         sim_obj = sim_solution(self)
         ss = sim_obj.steady_state(time=time, points=points)
-        J = ftorch.jacrev(self._dynamical_fun, argnums=1)(0, ss)
+        J = jacrev(self._dynamical_fun, argnums=1)(0, ss)
         self.J = J
         return J
 

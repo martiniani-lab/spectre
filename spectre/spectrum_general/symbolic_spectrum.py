@@ -1,0 +1,406 @@
+import numpy as np
+import torch
+import matplotlib.pyplot as plt
+import math
+from torch.func import jacrev
+import sympy as sp
+import os
+import timeit
+from functools import lru_cache
+
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
+torch.set_default_dtype(torch.float64)
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
+
+
+class symbolic_PSD:
+    def __init__(self, J, L, S):
+        """
+        In this constructor function, we define and assign the different matrices "O"
+        and list "l", upon which our spectrum solution depends.
+        :param J: the Jacobian matrix
+        :param L: the matrix containing noise coefficients
+        :param D: the matrix containing the variance of the noise terms added
+        """
+        super().__init__()
+        self.J = J
+        self.L = L
+        self.S = S
+        self.n = L.shape[0]
+
+        # we define the index matrix and the l matrix
+        self.l = torch.zeros(self.n, self.n, dtype=torch.int64)
+        idx = torch.ones((self.n, self.n, self.n, self.n), dtype=torch.bool)
+        index_row = np.tile(np.arange(self.n - 1).astype(np.ushort),
+                            (self.n, self.n, 1))
+        index_col = np.tile(np.arange(self.n - 1).astype(np.ushort),
+                            (self.n, self.n, 1))
+        self.l = sp.Matrix([[sp.Rational(str(j)) for j in i] for i in self.l.tolist()])
+        for i in range(self.n):
+            for j in range(self.n):
+                idx[i, j, i] = False
+                idx[i, j, :, j] = False
+                if not i == j:
+                    if i > j:
+                        self.l[i, j] = j
+                        index_col[i, j] = np.insert(np.delete(index_col[i, j], i - 1), j, i - 1)
+                    else:
+                        self.l[i, j] = i
+                        index_row[i, j] = np.insert(np.delete(index_row[i, j], j - 1), i, j - 1)
+
+        self.O = [[sp.Symbol('O_{}{}'.format(i, j)) for j in range(self.n)] for i in range(self.n)]
+
+        # We define the coefficients of the denominator. Note: all are the same.
+        self.q_all = None
+
+        # Convert the Jacobian matrix into a hashable object
+        self.J = sp.matrices.ImmutableMatrix(self.J)
+
+        # Define all the cache containers
+        self.q = lru_cache(maxsize=None)(self._q)
+        self.d = lru_cache(maxsize=None)(self._d)
+        self.g_1 = lru_cache(maxsize=None)(self._g_1)
+        self.g_2 = lru_cache(maxsize=None)(self._g_2)
+        self.h_1 = lru_cache(maxsize=None)(self._h_1)
+        self.h_2 = lru_cache(maxsize=None)(self._h_2)
+        self.f = lru_cache(maxsize=None)(self._f)
+        self.s_1 = lru_cache(maxsize=None)(self._s_1)
+        self.s_2 = lru_cache(maxsize=None)(self._s_2)
+        self.t_1 = lru_cache(maxsize=None)(self._t_1)
+        self.t_2 = lru_cache(maxsize=None)(self._t_2)
+        self.bell_inp = lru_cache(maxsize=None)(self._bell_inp)
+        self.comp_bell = lru_cache(maxsize=None)(self._comp_bell)
+        self.r_k = lru_cache(maxsize=None)(self._r_k)
+
+    @staticmethod
+    @lru_cache(maxsize=None)
+    def excluded_mat(A, l):
+        """
+        This function returns the excluded matrix of A about (l, l).
+        """
+        B = A.as_mutable()
+        B.row_del(l)
+        B.col_del(l)
+        return sp.ImmutableMatrix(B)
+
+    @staticmethod
+    def hessenberg_det(A):
+        """
+        This function returns the determinant of the upperHessenberg matrix A.
+        This returns the answer in O(n^2). This code is adapted from the julia
+        implementation found at:
+        'https://github.com/JuliaLang/julia/blob/master/stdlib/LinearAlgebra/src/hessenberg.jl'
+        """
+        m = A.shape[0]
+        det = A[0, 0]
+        pdet = sp.Rational("1")
+
+        if m == 1:
+            return det
+
+        prods = [0] * (m-1)
+
+        for j in range(1, m):
+            prods[j - 1] = pdet
+            pdet = det
+            det *= A[j, j]
+            a = A[j, j - 1]
+            for k in range(j - 1, 0, -2):
+                prods[k] *= a
+                prods[k - 1] *= a
+                det -= A[k, j] * prods[k] - A[k - 1, j] * prods[k - 1]
+            if (j - 1) % 2 == 0:
+                prods[0] *= a
+                det -= A[0, j] * prods[0]
+
+        return det
+
+    def p_auto_all_coeffs(self, i):
+        """
+        This function returns all the coefficients of the numerator of the auto-spectrum.
+        :param i: the index of the neuron for which the auto-spectrum is desired.
+        :return: the coefficients of the numerator of the auto-spectrum.
+        """
+        alphas = np.arange(self.n)
+        O = [self.O[i][1] for i in range(n)]
+        coeffs = [self.p_auto(i, j.item(), O) for j in alphas]
+        return coeffs
+
+    def p_auto(self, i, alpha, O):
+        """
+        This function returns the coefficient of the numerator of the auto-spectrum
+        of the i-th variable.
+        :param i: the index of the variable for which the auto-spectra is desired.
+        :param alpha: power of omega
+        :return: the value of the coefficient of omega^2alpha.
+        """
+        temp = sp.Rational("0")
+        n = self.n
+        for m in range(n):
+            coeff0 = self.S[m, m] ** 2
+            temp += coeff0 * self.L[i, m] ** 2 * self.d(O[i], alpha)
+            for j in range(n):
+                if not (j == i):
+                    temp += coeff0 * self.L[j, m] ** 2 * self.f(O[j], self.l[j, i], alpha)
+                    temp -= coeff0 * self.L[i, m] * self.L[j, m] * self.s_1(O[i], O[j], self.l[j, i], alpha)
+            for j in range(n):
+                if not (j == i):
+                    for k in range(j):
+                        if not (k == i):
+                            temp += coeff0 * self.L[j, m] * self.L[k, m] * self.t_1(O[j], O[k], self.l[j, i], self.l[k, i], alpha)
+        return temp
+
+    def p_cross_r_all_coeffs(self, i, j):
+        alphas = np.arange(self.n)
+        Oi = self.O_dict_return(i)
+        Oj = self.O_dict_return(j)
+        coeffs = [self.p_cross_r(i, j, k.item(), Oi, Oj) for k in alphas]
+        return coeffs
+
+    def p_cross_r(self, i, j, alpha, Oi, Oj):
+        """
+        This function returns the coefficient of the real part of the numerator
+        for the cross-spectrum between i-j th variable.
+        :param alpha: power of omega
+        :return: the value of the coefficient of omega^2alpha.
+        """
+
+        temp = sp.Rational("0")
+        n = self.n
+        for m in range(n):
+            coeff0 = self.S[m, m] ** 2 / 2
+            temp += coeff0 * self.L[i, m] * self.L[j, m] * self.h_1(Oi[i], Oj[j], alpha)
+            for k in range(n):
+                if not (k == j):
+                    temp -= coeff0 * self.L[i, m] * self.L[k, m] * self.s_1(Oi[i], Oj[k], self.l[k, j], alpha)
+            for k in range(n):
+                if not (k == i):
+                    temp -= coeff0 * self.L[k, m] * self.L[j, m] * self.s_1(Oj[j], Oi[k], self.l[k, i], alpha)
+            for k in range(n):
+                if not (k == i):
+                    for q in range(n):
+                        if not (q == j):
+                            temp += coeff0 * self.L[k, m] * self.L[q, m] * self.t_1(Oi[k], Oj[q], self.l[i, k], self.l[j, q], alpha)
+        return temp
+
+    def p_cross_i_all_coeffs(self, i, j):
+        alphas = np.arange(self.n-1)
+        Oi = self.O_dict_return(i)
+        Oj = self.O_dict_return(j)
+        coeffs = [self.p_cross_i(i, j, k.item(), Oi, Oj) for k in alphas]
+        return coeffs
+
+    def p_cross_i(self, i, j, alpha, Oi, Oj):
+        """
+        This function returns the coefficient of the imaginary part of the numerator
+        for the cross-spectrum between i-j th variable.
+        :param alpha: power of omega
+        :return: the value of the coefficient of omega^(2alpha+1).
+        """
+        temp = sp.Rational("0")
+        n = self.n
+        for m in range(n):
+            coeff0 = self.S[m, m] ** 2 / 2
+            temp -= coeff0 * self.L[i, m] * self.L[j, m] * self.h_2(Oi[i], Oj[j], alpha)
+            for k in range(n):
+                if not (k == j):
+                    temp -= coeff0 * self.L[i, m] * self.L[k, m] * self.s_2(Oi[i], Oj[k], self.l[k, j], alpha)
+            for k in range(n):
+                if not (k == i):
+                    temp += coeff0 * self.L[k, m] * self.L[j, m] * self.s_2(Oj[j], Oi[k], self.l[k, i], alpha)
+            for k in range(n):
+                if not (k == i):
+                    for q in range(n):
+                        if not (q == j):
+                            temp += coeff0 * self.L[k, m] * self.L[q, m] * self.t_2(Oi[k], Oj[q], self.l[i, k], self.l[j, q], alpha)
+        return temp
+
+    def q_all_coeffs(self):
+        alphas = np.arange(self.n+1)
+        coeffs = [self.q(i.item()) for i in alphas]
+        return coeffs
+
+    def _q(self, alpha):
+        """
+        This function returns the coefficient of the denominator of the spectrum.
+        Note that the denominator is the same for all the variables.
+        :param alpha: power of omega
+        :return: the value of the coefficient of omega^2alpha.
+        """
+        return self.d(self.J, alpha)
+
+    def _d(self, A, alpha):
+        """
+        d(w; A) = ||A+iwI||^2
+        Returns the coefficient of w^{2*alpha}
+        """
+        n = A.shape[0]
+        return (-1) ** abs(n - alpha) * self.comp_bell(self.bell_inp(A, 2, n - alpha)) / sp.factorial(n - alpha)
+
+    def _g_1(self, A, B, alpha):
+        """
+        g1 = Real{2w Conjugate{|A+iwI|}|B+iwI|}
+        Returns the coefficient of the power of 2*alpha + 1. See SI for details.
+        """
+        n = A.shape[0]
+        temp = sp.Rational("0")
+        for j in range(n + 1):
+            k = 2 * alpha - j
+            if k <= n - 1 and k >= 0:
+                coeff = 2 * (-1) ** abs(alpha - j - 1) / (sp.factorial(n - j) * sp.factorial(n - k - 1))
+                temp += coeff * self.comp_bell(
+                    self.bell_inp(A, 1, n - j)) * self.comp_bell(
+                    self.bell_inp(B, 1, n - k - 1))
+        return temp
+
+    def _g_2(self, A, B, alpha):
+        """
+        g2 = Imaginary{2w Conjugate{|A+iwI|}|B+iwI|}
+        Returns the coefficient of the power of 2*alpha. See SI for details.
+        """
+        n = A.shape[0]
+        temp = sp.Rational("0")
+        for j in range(n + 1):
+            k = 2 * alpha - 1 - j
+            if k <= n - 1 and k >= 0:
+                coeff = 2 * (-1) ** abs(alpha - j - 1) / (sp.factorial(n - j) * sp.factorial(n - k - 1))
+                temp += coeff * self.comp_bell(
+                    self.bell_inp(A, 1, n - j)) * self.comp_bell(
+                    self.bell_inp(B, 1, n - k - 1))
+        return temp
+
+    def _h_1(self, A, B, alpha):
+        """
+        h1 = Real{2 Conjugate{|A+iwI|}|B+iwI|}
+        Returns the coefficient of the power of 2*alpha. See SI for details.
+        """
+        n = A.shape[0]  # A and C have same dimensions
+        temp = sp.Rational("0")
+        for j in range(n + 1):
+            k = 2 * alpha - j
+            if k <= n and k >= 0:
+                coeff = 2 * (-1) ** abs(alpha - k) / (sp.factorial(n - j) * sp.factorial(n - k))
+                temp += coeff * self.comp_bell(
+                    self.bell_inp(A, 1, n - j)) * self.comp_bell(
+                    self.bell_inp(B, 1, n - k))
+        return temp
+
+    def _h_2(self, A, B, alpha):
+        """
+        h2 = Imaginary{2 Conjugate{|A+iwI|}|B+iwI|}
+        Returns the coefficient of the power of 2*alpha+1. See SI for details.
+        """
+        n = A.shape[0]  # A and C have same dimensions
+        temp = sp.Rational("0")
+        for j in range(n + 1):
+            k = 2 * alpha + 1 - j
+            if k <= n and k >= 0:
+                coeff = 2 * (-1) ** abs(alpha - k) / (sp.factorial(n - j) * sp.factorial(n - k))
+                temp += coeff * self.comp_bell(
+                    self.bell_inp(A, 1, n - j)) * self.comp_bell(
+                    self.bell_inp(B, 1, n - k))
+        return temp
+
+    def _f(self, A, l, alpha):
+        """
+        See SI for definition.
+        """
+        # Calculate minor about l,l element
+        B = symbolic_PSD.excluded_mat(A, l)
+        return self.d(A, alpha) + self.d(B, alpha - 1) + self.g_2(A, B, alpha)
+
+    def _s_1(self, A, B, l, alpha):
+        """
+        See SI for definition.
+        """
+        C = symbolic_PSD.excluded_mat(B, l)
+        return self.h_1(A, B, alpha) + self.g_2(A, C, alpha)
+
+    def _s_2(self, A, B, l, alpha):
+        """
+        See SI for definition.
+        """
+        C = symbolic_PSD.excluded_mat(B, l)
+        return - self.h_2(A, B, alpha) + self.g_1(A, C, alpha)
+
+    def _t_1(self, A, B, l1, l2, alpha):
+        """
+        See SI for definition.
+        """
+        C = symbolic_PSD.excluded_mat(A, l1)
+        D = symbolic_PSD.excluded_mat(B, l2)
+        return self.h_1(A, B, alpha) + self.h_1(C, D, alpha - 1) + self.g_2(B, C, alpha) + self.g_2(A, D, alpha)
+
+    def _t_2(self, A, B, l1, l2, alpha):
+        """
+        See SI for definition.
+        """
+        C = symbolic_PSD.excluded_mat(A, l1)
+        D = symbolic_PSD.excluded_mat(B, l2)
+        return - self.h_2(A, B, alpha) - self.h_2(C, D, alpha - 1) - self.g_1(B, C, alpha) + self.g_1(A, D, alpha)
+
+    def _bell_inp(self, mat, kappa, k):
+        """
+        Constructs the input to the Bell polynomial. See, SI.
+        """
+        if k != 0:
+            x = sp.zeros(k, 1)
+            for i in range(0, k):
+                x[i] = - self.r_k(mat, kappa, i + 1)
+            return sp.ImmutableMatrix(x)
+        else:
+            return sp.ImmutableMatrix(sp.ones(1))
+
+    def _comp_bell(self, x):
+        k = x.shape[0]
+        B_k = sp.zeros(k, k)
+        for i in range(0, k):
+            for j in range(0, k):
+                if j - i < -1:
+                    B_k[i, j] = 0
+                elif j - i == -1:
+                    B_k[i, j] = -i
+                else:
+                    B_k[i, j] = x[j - i]
+        # return sp.det(B_k)
+        return symbolic_PSD.hessenberg_det(B_k)
+
+    def _r_k(self, mat, kappa, k):
+        """
+        This function calculates the k-th power sum.
+        """
+        return sp.trace(self.mat_power(mat, kappa * k))
+
+    @staticmethod
+    @lru_cache(maxsize=None)
+    def mat_power(mat, p):
+        """
+        Calculates the matrix power of a matrix. We use recursion to make the code
+        faster.
+        """
+        if p == 0:
+            return sp.ImmutableMatrix(sp.eye(mat.shape[0]))
+        elif p == 1:
+            return mat
+        elif p % 2 == 0:
+            return symbolic_PSD.mat_power(mat * mat, p / 2)
+        else:
+            return mat * symbolic_PSD.mat_power(mat * mat, (p - 1) / 2)
+
+        # return mat**p
+
+
+if __name__ == '__main__':
+    pass
+    
+    
+
+
+
+
+
+
+

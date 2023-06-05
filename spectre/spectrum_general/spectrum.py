@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import math
-import torch.func as ftorch
+from torch.func import jacrev, vmap
 import sympy as sp
 import os
 import timeit
@@ -66,7 +66,7 @@ class element_wise:
         """
         # Define the tensor storing the O matrices required for the solution, we first
         self.O = J.repeat(self.n, self.n, 1, 1)[idx].reshape(self.n, self.n, self.n - 1, self.n - 1)
-        self.O = ftorch.vmap(element_wise.make_O, in_dims=(0, 0, 0))(
+        self.O = vmap(element_wise.make_O, in_dims=(0, 0, 0))(
             self.O.reshape(-1, self.n - 1, self.n - 1),
             index_row.reshape(-1, self.n - 1), index_col.reshape(-1, self.n - 1))
         self.O = self.O.reshape(self.n, self.n, self.n - 1, self.n - 1).numpy()

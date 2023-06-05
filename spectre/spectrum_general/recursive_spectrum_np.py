@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-import torch.func as ftorch
+from torch.func import jacrev
 import os
 import timeit
 from functools import lru_cache
