@@ -76,7 +76,7 @@ class symbolic:
         """
         alphas = np.arange(self.n)
         O = [self.O[j][i] for j in range(self.n)]
-        coeffs = [self.p_auto(i, j.item(), O) for j in alphas]
+        coeffs = [sp.together(sp.simplify(self.p_auto(i, j.item(), O))) for j in alphas]
         return coeffs
 
     def p_auto(self, i, alpha, O):
@@ -107,7 +107,7 @@ class symbolic:
         alphas = np.arange(self.n)
         Oi = [self.O[k][i] for k in range(self.n)]
         Oj = [self.O[k][j] for k in range(self.n)]
-        coeffs = [self.p_cross_r(i, j, k.item(), Oi, Oj) for k in alphas]
+        coeffs = [sp.together(sp.simplify(self.p_cross_r(i, j, k.item(), Oi, Oj))) for k in alphas]
         return coeffs
 
     def p_cross_r(self, i, j, alpha, Oi, Oj):
@@ -139,7 +139,7 @@ class symbolic:
         alphas = np.arange(self.n-1)
         Oi = [self.O[k][i] for k in range(self.n)]
         Oj = [self.O[k][j] for k in range(self.n)]
-        coeffs = [self.p_cross_i(i, j, k.item(), Oi, Oj) for k in alphas]
+        coeffs = [sp.together(sp.simplify(self.p_cross_i(i, j, k.item(), Oi, Oj))) for k in alphas]
         return coeffs
 
     def p_cross_i(self, i, j, alpha, Oi, Oj):
@@ -169,7 +169,7 @@ class symbolic:
 
     def q_all_coeffs(self):
         alphas = np.arange(self.n+1)
-        coeffs = [self.q(i.item()) for i in alphas]
+        coeffs = [sp.together(sp.simplify(self.q(i.item()))) for i in alphas]
         return coeffs
 
     def q(self, alpha):
