@@ -1,8 +1,6 @@
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 import math
-from torch.func import jacrev
 import sympy as sp
 import os
 import timeit
@@ -16,8 +14,8 @@ torch.set_default_dtype(torch.float64)
 device = torch.device("cpu")
 
 
-class symbolic_PSD:
-    def __init__(self, J, L, S):
+class symbolic:
+    def __init__(self, n, L, S):
         """
         In this constructor function, we define and assign the different matrices "O"
         and list "l", upon which our spectrum solution depends.
@@ -26,65 +24,17 @@ class symbolic_PSD:
         :param D: the matrix containing the variance of the noise terms added
         """
         super().__init__()
-        self.J = J
+        # self.J = sp.Matrix([[sp.symbols('a%d%d' % (k, j)) for j in range(n)] for k in range(n)])
+        self.J = sp.symbols('J')
         self.L = L
         self.S = S
-        self.n = L.shape[0]
-
-        # we define the index matrix and the l matrix
-        self.l = torch.zeros(self.n, self.n, dtype=torch.int64)
-        idx = torch.ones((self.n, self.n, self.n, self.n), dtype=torch.bool)
-        index_row = np.tile(np.arange(self.n - 1).astype(np.ushort),
-                            (self.n, self.n, 1))
-        index_col = np.tile(np.arange(self.n - 1).astype(np.ushort),
-                            (self.n, self.n, 1))
-        self.l = sp.Matrix([[sp.Rational(str(j)) for j in i] for i in self.l.tolist()])
-        for i in range(self.n):
-            for j in range(self.n):
-                idx[i, j, i] = False
-                idx[i, j, :, j] = False
-                if not i == j:
-                    if i > j:
-                        self.l[i, j] = j
-                        index_col[i, j] = np.insert(np.delete(index_col[i, j], i - 1), j, i - 1)
-                    else:
-                        self.l[i, j] = i
-                        index_row[i, j] = np.insert(np.delete(index_row[i, j], j - 1), i, j - 1)
+        self.n = n
 
         self.O = [[sp.Symbol('O_{}{}'.format(i, j)) for j in range(self.n)] for i in range(self.n)]
+        self.O_prime = [[sp.Symbol('O_{}{}\''.format(i, j)) for j in range(n)] for i in range(n)]
 
         # We define the coefficients of the denominator. Note: all are the same.
         self.q_all = None
-
-        # Convert the Jacobian matrix into a hashable object
-        self.J = sp.matrices.ImmutableMatrix(self.J)
-
-        # Define all the cache containers
-        self.q = lru_cache(maxsize=None)(self._q)
-        self.d = lru_cache(maxsize=None)(self._d)
-        self.g_1 = lru_cache(maxsize=None)(self._g_1)
-        self.g_2 = lru_cache(maxsize=None)(self._g_2)
-        self.h_1 = lru_cache(maxsize=None)(self._h_1)
-        self.h_2 = lru_cache(maxsize=None)(self._h_2)
-        self.f = lru_cache(maxsize=None)(self._f)
-        self.s_1 = lru_cache(maxsize=None)(self._s_1)
-        self.s_2 = lru_cache(maxsize=None)(self._s_2)
-        self.t_1 = lru_cache(maxsize=None)(self._t_1)
-        self.t_2 = lru_cache(maxsize=None)(self._t_2)
-        self.bell_inp = lru_cache(maxsize=None)(self._bell_inp)
-        self.comp_bell = lru_cache(maxsize=None)(self._comp_bell)
-        self.r_k = lru_cache(maxsize=None)(self._r_k)
-
-    @staticmethod
-    @lru_cache(maxsize=None)
-    def excluded_mat(A, l):
-        """
-        This function returns the excluded matrix of A about (l, l).
-        """
-        B = A.as_mutable()
-        B.row_del(l)
-        B.col_del(l)
-        return sp.ImmutableMatrix(B)
 
     @staticmethod
     def hessenberg_det(A):
@@ -125,7 +75,7 @@ class symbolic_PSD:
         :return: the coefficients of the numerator of the auto-spectrum.
         """
         alphas = np.arange(self.n)
-        O = [self.O[i][1] for i in range(n)]
+        O = [self.O[j][i] for j in range(self.n)]
         coeffs = [self.p_auto(i, j.item(), O) for j in alphas]
         return coeffs
 
@@ -144,19 +94,19 @@ class symbolic_PSD:
             temp += coeff0 * self.L[i, m] ** 2 * self.d(O[i], alpha)
             for j in range(n):
                 if not (j == i):
-                    temp += coeff0 * self.L[j, m] ** 2 * self.f(O[j], self.l[j, i], alpha)
-                    temp -= coeff0 * self.L[i, m] * self.L[j, m] * self.s_1(O[i], O[j], self.l[j, i], alpha)
+                    temp += coeff0 * self.L[j, m] ** 2 * self.f(O[j], None, alpha)
+                    temp -= coeff0 * self.L[i, m] * self.L[j, m] * self.s_1(O[i], O[j], None, alpha)
             for j in range(n):
                 if not (j == i):
                     for k in range(j):
                         if not (k == i):
-                            temp += coeff0 * self.L[j, m] * self.L[k, m] * self.t_1(O[j], O[k], self.l[j, i], self.l[k, i], alpha)
+                            temp += coeff0 * self.L[j, m] * self.L[k, m] * self.t_1(O[j], O[k], None, None, alpha)
         return temp
 
     def p_cross_r_all_coeffs(self, i, j):
         alphas = np.arange(self.n)
-        Oi = self.O_dict_return(i)
-        Oj = self.O_dict_return(j)
+        Oi = [self.O[k][i] for k in range(self.n)]
+        Oj = [self.O[k][j] for k in range(self.n)]
         coeffs = [self.p_cross_r(i, j, k.item(), Oi, Oj) for k in alphas]
         return coeffs
 
@@ -167,7 +117,6 @@ class symbolic_PSD:
         :param alpha: power of omega
         :return: the value of the coefficient of omega^2alpha.
         """
-
         temp = sp.Rational("0")
         n = self.n
         for m in range(n):
@@ -175,21 +124,21 @@ class symbolic_PSD:
             temp += coeff0 * self.L[i, m] * self.L[j, m] * self.h_1(Oi[i], Oj[j], alpha)
             for k in range(n):
                 if not (k == j):
-                    temp -= coeff0 * self.L[i, m] * self.L[k, m] * self.s_1(Oi[i], Oj[k], self.l[k, j], alpha)
+                    temp -= coeff0 * self.L[i, m] * self.L[k, m] * self.s_1(Oi[i], Oj[k], None, alpha)
             for k in range(n):
                 if not (k == i):
-                    temp -= coeff0 * self.L[k, m] * self.L[j, m] * self.s_1(Oj[j], Oi[k], self.l[k, i], alpha)
+                    temp -= coeff0 * self.L[k, m] * self.L[j, m] * self.s_1(Oj[j], Oi[k], None, alpha)
             for k in range(n):
                 if not (k == i):
                     for q in range(n):
                         if not (q == j):
-                            temp += coeff0 * self.L[k, m] * self.L[q, m] * self.t_1(Oi[k], Oj[q], self.l[i, k], self.l[j, q], alpha)
+                            temp += coeff0 * self.L[k, m] * self.L[q, m] * self.t_1(Oi[k], Oj[q], None, None, alpha)
         return temp
 
     def p_cross_i_all_coeffs(self, i, j):
         alphas = np.arange(self.n-1)
-        Oi = self.O_dict_return(i)
-        Oj = self.O_dict_return(j)
+        Oi = [self.O[k][i] for k in range(self.n)]
+        Oj = [self.O[k][j] for k in range(self.n)]
         coeffs = [self.p_cross_i(i, j, k.item(), Oi, Oj) for k in alphas]
         return coeffs
 
@@ -207,15 +156,15 @@ class symbolic_PSD:
             temp -= coeff0 * self.L[i, m] * self.L[j, m] * self.h_2(Oi[i], Oj[j], alpha)
             for k in range(n):
                 if not (k == j):
-                    temp -= coeff0 * self.L[i, m] * self.L[k, m] * self.s_2(Oi[i], Oj[k], self.l[k, j], alpha)
+                    temp -= coeff0 * self.L[i, m] * self.L[k, m] * self.s_2(Oi[i], Oj[k], None, alpha)
             for k in range(n):
                 if not (k == i):
-                    temp += coeff0 * self.L[k, m] * self.L[j, m] * self.s_2(Oj[j], Oi[k], self.l[k, i], alpha)
+                    temp += coeff0 * self.L[k, m] * self.L[j, m] * self.s_2(Oj[j], Oi[k], None, alpha)
             for k in range(n):
                 if not (k == i):
                     for q in range(n):
                         if not (q == j):
-                            temp += coeff0 * self.L[k, m] * self.L[q, m] * self.t_2(Oi[k], Oj[q], self.l[i, k], self.l[j, q], alpha)
+                            temp += coeff0 * self.L[k, m] * self.L[q, m] * self.t_2(Oi[k], Oj[q], None, None, alpha)
         return temp
 
     def q_all_coeffs(self):
@@ -223,7 +172,7 @@ class symbolic_PSD:
         coeffs = [self.q(i.item()) for i in alphas]
         return coeffs
 
-    def _q(self, alpha):
+    def q(self, alpha):
         """
         This function returns the coefficient of the denominator of the spectrum.
         Note that the denominator is the same for all the variables.
@@ -232,20 +181,23 @@ class symbolic_PSD:
         """
         return self.d(self.J, alpha)
 
-    def _d(self, A, alpha):
+    def d(self, A, alpha):
         """
         d(w; A) = ||A+iwI||^2
         Returns the coefficient of w^{2*alpha}
         """
-        n = A.shape[0]
+        if A == self.J:
+            n = self.n
+        else:
+            n = self.n - 1
         return (-1) ** abs(n - alpha) * self.comp_bell(self.bell_inp(A, 2, n - alpha)) / sp.factorial(n - alpha)
 
-    def _g_1(self, A, B, alpha):
+    def g_1(self, A, B, alpha):
         """
         g1 = Real{2w Conjugate{|A+iwI|}|B+iwI|}
         Returns the coefficient of the power of 2*alpha + 1. See SI for details.
         """
-        n = A.shape[0]
+        n = self.n - 1
         temp = sp.Rational("0")
         for j in range(n + 1):
             k = 2 * alpha - j
@@ -256,12 +208,12 @@ class symbolic_PSD:
                     self.bell_inp(B, 1, n - k - 1))
         return temp
 
-    def _g_2(self, A, B, alpha):
+    def g_2(self, A, B, alpha):
         """
         g2 = Imaginary{2w Conjugate{|A+iwI|}|B+iwI|}
         Returns the coefficient of the power of 2*alpha. See SI for details.
         """
-        n = A.shape[0]
+        n = self.n - 1
         temp = sp.Rational("0")
         for j in range(n + 1):
             k = 2 * alpha - 1 - j
@@ -272,12 +224,12 @@ class symbolic_PSD:
                     self.bell_inp(B, 1, n - k - 1))
         return temp
 
-    def _h_1(self, A, B, alpha):
+    def h_1(self, A, B, alpha):
         """
         h1 = Real{2 Conjugate{|A+iwI|}|B+iwI|}
         Returns the coefficient of the power of 2*alpha. See SI for details.
         """
-        n = A.shape[0]  # A and C have same dimensions
+        n = self.n - 1  # A and C have same dimensions
         temp = sp.Rational("0")
         for j in range(n + 1):
             k = 2 * alpha - j
@@ -288,12 +240,12 @@ class symbolic_PSD:
                     self.bell_inp(B, 1, n - k))
         return temp
 
-    def _h_2(self, A, B, alpha):
+    def h_2(self, A, B, alpha):
         """
         h2 = Imaginary{2 Conjugate{|A+iwI|}|B+iwI|}
         Returns the coefficient of the power of 2*alpha+1. See SI for details.
         """
-        n = A.shape[0]  # A and C have same dimensions
+        n = self.n - 1  # A and C have same dimensions
         temp = sp.Rational("0")
         for j in range(n + 1):
             k = 2 * alpha + 1 - j
@@ -304,45 +256,45 @@ class symbolic_PSD:
                     self.bell_inp(B, 1, n - k))
         return temp
 
-    def _f(self, A, l, alpha):
+    def f(self, A, l, alpha):
         """
         See SI for definition.
         """
         # Calculate minor about l,l element
-        B = symbolic_PSD.excluded_mat(A, l)
+        B = self.add_string(A, '\'')
         return self.d(A, alpha) + self.d(B, alpha - 1) + self.g_2(A, B, alpha)
 
-    def _s_1(self, A, B, l, alpha):
+    def s_1(self, A, B, l, alpha):
         """
         See SI for definition.
         """
-        C = symbolic_PSD.excluded_mat(B, l)
+        C = self.add_string(B, '\'')
         return self.h_1(A, B, alpha) + self.g_2(A, C, alpha)
 
-    def _s_2(self, A, B, l, alpha):
+    def s_2(self, A, B, l, alpha):
         """
         See SI for definition.
         """
-        C = symbolic_PSD.excluded_mat(B, l)
+        C = self.add_string(B, '\'')
         return - self.h_2(A, B, alpha) + self.g_1(A, C, alpha)
 
-    def _t_1(self, A, B, l1, l2, alpha):
+    def t_1(self, A, B, l1, l2, alpha):
         """
         See SI for definition.
         """
-        C = symbolic_PSD.excluded_mat(A, l1)
-        D = symbolic_PSD.excluded_mat(B, l2)
+        C = self.add_string(A, '\'')
+        D = self.add_string(B, '\'')
         return self.h_1(A, B, alpha) + self.h_1(C, D, alpha - 1) + self.g_2(B, C, alpha) + self.g_2(A, D, alpha)
 
-    def _t_2(self, A, B, l1, l2, alpha):
+    def t_2(self, A, B, l1, l2, alpha):
         """
         See SI for definition.
         """
-        C = symbolic_PSD.excluded_mat(A, l1)
-        D = symbolic_PSD.excluded_mat(B, l2)
+        C = self.add_string(A, '\'')
+        D = self.add_string(B, '\'')
         return - self.h_2(A, B, alpha) - self.h_2(C, D, alpha - 1) - self.g_1(B, C, alpha) + self.g_1(A, D, alpha)
 
-    def _bell_inp(self, mat, kappa, k):
+    def bell_inp(self, mat, kappa, k):
         """
         Constructs the input to the Bell polynomial. See, SI.
         """
@@ -354,7 +306,7 @@ class symbolic_PSD:
         else:
             return sp.ImmutableMatrix(sp.ones(1))
 
-    def _comp_bell(self, x):
+    def comp_bell(self, x):
         k = x.shape[0]
         B_k = sp.zeros(k, k)
         for i in range(0, k):
@@ -366,41 +318,26 @@ class symbolic_PSD:
                 else:
                     B_k[i, j] = x[j - i]
         # return sp.det(B_k)
-        return symbolic_PSD.hessenberg_det(B_k)
+        return self.hessenberg_det(B_k)
 
-    def _r_k(self, mat, kappa, k):
+    def r_k(self, mat, kappa, k):
         """
         This function calculates the k-th power sum.
         """
-        return sp.trace(self.mat_power(mat, kappa * k))
+        return self.Tr(self.mat_power(mat, kappa * k))
+    
+    @staticmethod
+    def Tr(x):
+        return sp.Function('Tr')(x)
 
     @staticmethod
-    @lru_cache(maxsize=None)
     def mat_power(mat, p):
-        """
-        Calculates the matrix power of a matrix. We use recursion to make the code
-        faster.
-        """
-        if p == 0:
-            return sp.ImmutableMatrix(sp.eye(mat.shape[0]))
-        elif p == 1:
-            return mat
-        elif p % 2 == 0:
-            return symbolic_PSD.mat_power(mat * mat, p / 2)
-        else:
-            return mat * symbolic_PSD.mat_power(mat * mat, (p - 1) / 2)
-
-        # return mat**p
+        return sp.sympify(mat**p)
+    
+    @staticmethod
+    def add_string(a, string):
+        return sp.Symbol(string.join([str(a)[:1], str(a)[1:]]))
 
 
 if __name__ == '__main__':
     pass
-    
-    
-
-
-
-
-
-
-
