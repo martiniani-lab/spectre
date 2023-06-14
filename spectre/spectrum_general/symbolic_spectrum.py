@@ -186,10 +186,7 @@ class symbolic:
         d(w; A) = ||A+iwI||^2
         Returns the coefficient of w^{2*alpha}
         """
-        if A == self.J:
-            n = self.n
-        else:
-            n = self.n - 1
+        n = self.shape(A)
         return (-1) ** abs(n - alpha) * self.comp_bell(self.bell_inp(A, 2, n - alpha)) / sp.factorial(n - alpha)
 
     def g_1(self, A, B, alpha):
@@ -197,7 +194,7 @@ class symbolic:
         g1 = Real{2w Conjugate{|A+iwI|}|B+iwI|}
         Returns the coefficient of the power of 2*alpha + 1. See SI for details.
         """
-        n = self.n - 1
+        n = self.shape(A)
         temp = sp.Rational("0")
         for j in range(n + 1):
             k = 2 * alpha - j
@@ -213,7 +210,7 @@ class symbolic:
         g2 = Imaginary{2w Conjugate{|A+iwI|}|B+iwI|}
         Returns the coefficient of the power of 2*alpha. See SI for details.
         """
-        n = self.n - 1
+        n = self.shape(A)
         temp = sp.Rational("0")
         for j in range(n + 1):
             k = 2 * alpha - 1 - j
@@ -229,7 +226,7 @@ class symbolic:
         h1 = Real{2 Conjugate{|A+iwI|}|B+iwI|}
         Returns the coefficient of the power of 2*alpha. See SI for details.
         """
-        n = self.n - 1  # A and C have same dimensions
+        n = self.shape(A)  # A and C have same dimensions
         temp = sp.Rational("0")
         for j in range(n + 1):
             k = 2 * alpha - j
@@ -245,7 +242,7 @@ class symbolic:
         h2 = Imaginary{2 Conjugate{|A+iwI|}|B+iwI|}
         Returns the coefficient of the power of 2*alpha+1. See SI for details.
         """
-        n = self.n - 1  # A and C have same dimensions
+        n = self.shape(A)  # A and C have same dimensions
         temp = sp.Rational("0")
         for j in range(n + 1):
             k = 2 * alpha + 1 - j
@@ -338,6 +335,15 @@ class symbolic:
     def add_string(a, string):
         return sp.Symbol(string.join([str(a)[:1], str(a)[1:]]))
 
+    def shape(self, mat):
+        if mat == self.J:
+            return self.n
+        elif str(mat)[1] == '\'':
+            return self.n - 2
+        else:
+            return self.n - 1
+
+        
 
 if __name__ == '__main__':
     pass
