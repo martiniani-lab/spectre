@@ -1,4 +1,7 @@
 import torch
+import scipy
+import numpy as np
+from scipy.linalg import ldl
 
 
 def dynm_fun(f):
@@ -31,3 +34,27 @@ def cholesky_decomposition(A):
     """
     L = torch.linalg.cholesky(A)
     return L
+
+def make_square(L, S):
+    """
+    This function returns a square system from a rectanguar system.
+    :param L: The noise coefficient matrix (a torch tensor).
+    :param S: The square-root diagonal matrix (a torch tensor).
+    :return: square_L, square_S.
+    """
+    C = L @ S @ S.T @ L.T
+    n = L.shape[0]
+    m = L.shape[1]
+    if n > m:
+        square_L = torch.cat((L, torch.zeros(n, n-m)), dim=1)
+        square_S = torch.cat((S, torch.zeros(m, n-m)), dim=1)
+        square_S = torch.cat((square_S, torch.zeros(n-m, n)), dim=0)
+    elif n < m:
+        # Calculate LDL decomposition
+        lu, d, perm = ldl(C.numpy(), lower=0)
+        square_L = torch.tensor(lu)
+        square_S = torch.sqrt(torch.tensor(d))
+    else:
+        square_L = L
+        square_S = S
+    return square_L, square_S

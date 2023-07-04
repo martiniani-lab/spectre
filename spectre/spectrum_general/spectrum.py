@@ -3,6 +3,7 @@ import torch
 import matplotlib.pyplot as plt
 import math
 from torch.func import jacrev, vmap
+from spectre.utils.util_funs import make_square
 import sympy as sp
 import os
 import timeit
@@ -26,13 +27,13 @@ class element_wise:
         :param L: the matrix containing noise coefficients
         :param S: the matrix containing the S.D. of the noise terms added
         """
+        """Make the noise matrices square"""
+        L, S = make_square(L, S)
+
         self.J = sp.Matrix([[sp.Rational(str(j)) for j in i] for i in J.tolist()])
         self.L = sp.Matrix([[sp.Rational(str(j)) for j in i] for i in L.tolist()])
         self.S = sp.Matrix([[sp.Rational(str(j)) for j in i] for i in S.tolist()])
-
-        # """Check if the noise matrix is square"""
-        # if self.L.shape[0] != self.L.shape[1]:
-        #     d=2
+        
         self.n = J.shape[0]
 
         # we define the index matrix and the l matrix
