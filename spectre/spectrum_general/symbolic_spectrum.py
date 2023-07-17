@@ -343,7 +343,6 @@ class symbolic:
         else:
             return self.n - 1
 
-        
 
 if __name__ == '__main__':
     pass
