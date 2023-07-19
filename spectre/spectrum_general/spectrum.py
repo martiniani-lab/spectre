@@ -17,7 +17,6 @@ torch.set_default_dtype(torch.float64)
 device = torch.device("cpu")
 # n_cores = 1
 
-
 class element_wise:
     def __init__(self, J=-torch.eye(3), L=torch.eye(3), S=torch.eye(3)):
         """
