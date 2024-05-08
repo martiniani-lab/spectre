@@ -5,12 +5,8 @@ import torch
 import matplotlib.pyplot as plt
 from torchdiffeq import odeint
 from torchsde import sdeint
-from spectre.utils.simulation_class import SDE, SDE_mul, SDE_cor_mul
+from ..utils.simulation_class import SDE, SDE_mul, SDE_cor_mul
 import scipy.signal
-
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device("cpu")
-torch.set_default_dtype(torch.float64)
 
 
 class sim_solution:
@@ -24,29 +20,45 @@ class sim_solution:
         self.obj = obj
         self.noise_type = obj.noise_type
 
-    def steady_state(self, time=1, points=10000, tol=1e-5, atol=1e-5, rtol=1e-5):
+    def steady_state(
+        self,
+        time=1,
+        points=10000,
+        tol=1e-5,
+        atol=1e-8,
+        rtol=1e-9,
+        y0=None,
+        method="euler",
+    ):
         """
         This function calculates the steady-state of the function by simulating the
         dynamical system over time.
         :return: The steady-state circuit. Raises an error if steady-state is not found.
         """
-        t = torch.linspace(0, time, points)
-        sim = self.simulate(t, atol, rtol)
+        t = self.new_method(time, points)
+        sim = self.simulate(t, atol, rtol, y0=y0, method=method)
         # find if steady state is reached in a given tolerance else raise exception
+        if torch.any(torch.isnan(sim[-1, :])):
+            raise Exception("The simulation has NaNs")
         if torch.all(torch.abs(sim[-1, :] - sim[-2, :]) < tol):
             return sim[-1, :]
         else:
-            raise Exception("Steady state not found")
+            raise Exception("The simulation did not converge.")
 
-    def simulate(self, t, atol=1e-5, rtol=1e-5):
+    def new_method(self, time, points):
+        t = torch.linspace(0, time, points)
+        return t
+
+    def simulate(self, t, atol=1e-8, rtol=1e-9, y0=None, method="euler"):
         """
         This function simulates the circuit dynamics over time.
         :param t: The time tensor to simulate over.
         :return: The state of the circuit over time
         """
-        y0 = torch.zeros(self.obj.dim) + 1e-2
+        if y0 is None:
+            y0 = torch.zeros(self.obj.dim) + 1e-2
         return odeint(
-            self.obj._dynamical_fun, y0, t, method="euler", atol=atol, rtol=rtol
+            self.obj._dynamical_fun, y0, t, method=method, atol=atol, rtol=rtol
         )
 
     def simulate_sde(self, t, n_points=int(1e5), time=10, dt=1e-4, save=True):
@@ -86,6 +98,35 @@ class sim_solution:
         else:
             solution = self.obj.simulation[key]
         return solution
+
+    def ss_variance(self, n_points=int(1e3), time=1, dt=1e-4, n_trials=100):
+        """
+        This function calculates the steady-state variance of the neurons by simulating
+        multiple trials. This code can be operated in two modes:
+        1. When you sample points from the end of the simulation from multiple trials.
+        2. When you sample all points from the simulation of a single trial.
+        :return: The steady-state variance of the circuit.
+        """
+        t = torch.linspace(0, time, n_points)
+        x0 = self.steady_state(time=time, points=n_points).unsqueeze(0)
+        if self.noise_type == "additive":
+            sde = SDE(self.obj)
+        elif self.noise_type == "multiplicative":
+            sde = SDE_mul(self.obj)
+        else:
+            raise Exception("Noise type not recognized")
+
+        final_sol = torch.zeros(n_trials, self.obj.dim)
+        for i in range(n_trials):
+            with torch.no_grad():
+                sol_sde = sdeint(sde, x0, t, dt=dt, method="euler")
+            sol_sde = sol_sde - torch.mean(sol_sde, dim=0)
+            sol_sde = sol_sde.squeeze(1)
+            if n_trials == 1:
+                final_sol = sol_sde
+            else:
+                final_sol[i, :] = sol_sde[-1, :]
+        return torch.var(final_sol, dim=0)
 
     @staticmethod
     def spectrum(

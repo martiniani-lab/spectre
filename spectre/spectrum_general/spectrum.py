@@ -3,20 +3,15 @@ import torch
 import matplotlib.pyplot as plt
 import math
 from torch.func import jacrev, vmap
-from spectre.utils.util_funs import make_square
+from ..utils.util_funs import make_square
 import sympy as sp
 import os
 import timeit
 from functools import lru_cache
 
-torch.set_default_dtype(torch.float64)
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device("cpu")
-# n_cores = 1
-
 
 class element_wise:
-    def __init__(self, J=-torch.eye(3), L=torch.eye(3), S=torch.eye(3)):
+    def __init__(self, J=None, L=None, S=None):
         """
         In this constructor function, we define and assign the different matrices "O"
         and list "l", upon which our spectrum solution depends.

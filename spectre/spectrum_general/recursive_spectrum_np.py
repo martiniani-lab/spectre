@@ -1,14 +1,11 @@
+"""This function calculates the power spectral density coefficients using the recursive solution in numpy"""
+
 import numpy as np
 import torch
 from torch.func import jacrev
 import os
 import timeit
 from functools import lru_cache
-
-torch.set_default_dtype(torch.float64)
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device("cpu")
-# n_cores = 1
 
 
 class recursive_solution_np:

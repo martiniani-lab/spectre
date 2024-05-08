@@ -6,10 +6,6 @@ import os
 import timeit
 from functools import lru_cache
 
-torch.set_default_dtype(torch.float64)
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device("cpu")
-
 
 class symbolic:
     def __init__(self, n, L, S):
