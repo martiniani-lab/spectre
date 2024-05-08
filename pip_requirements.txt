@@ -1,0 +1,8 @@
+numpy
+matplotlib
+torch
+scipy
+sympy
+torchdiffeq
+torchsde
+mpmath
