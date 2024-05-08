@@ -1,4 +1,5 @@
 """This function calculates the power spectral density using the matrix solution"""
+
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -37,7 +38,9 @@ class matrix_solution:
     @J.setter
     def J(self, J):
         if torch.any(torch.real(torch.linalg.eigvals(J)) > 0):
-            raise ValueError("The eigenvalues of the Jacobian matrix are not less than 0")
+            raise ValueError(
+                "The eigenvalues of the Jacobian matrix are not less than 0"
+            )
         self._J = J
         self.N = J.shape[0]
 
@@ -48,7 +51,9 @@ class matrix_solution:
         :param freq: frequency tensor
         :return: the PSD matrix
         """
-        freq = torch.logspace(np.log10(1), np.log10(1000), 100) if freq is None else freq
+        freq = (
+            torch.logspace(np.log10(1), np.log10(1000), 100) if freq is None else freq
+        )
         if J is None:
             J = self.J
         if J is None:
@@ -62,9 +67,15 @@ class matrix_solution:
 
         with torch.no_grad():
             for i in range(m):
-                S[i] = torch.inverse(
-                    J + 1j * om[i] * torch.eye(n, device=device)) @ self.noise_mat @ torch.inverse(
-                    torch.transpose(J - 1j * om[i] * torch.eye(n, device=device), 0, 1))
+                S[i] = (
+                    torch.inverse(J + 1j * om[i] * torch.eye(n, device=device))
+                    @ self.noise_mat
+                    @ torch.inverse(
+                        torch.transpose(
+                            J - 1j * om[i] * torch.eye(n, device=device), 0, 1
+                        )
+                    )
+                )
         return S
 
     def auto_spectrum(self, i=None, freq=None, J=None):
@@ -76,7 +87,11 @@ class matrix_solution:
         :return: the Power Spectral Density.
         """
         i = self.N // 2 if i is None else i
-        freq = torch.logspace(np.log10(0.001), np.log10(1000), 100) if freq is None else freq
+        freq = (
+            torch.logspace(np.log10(0.001), np.log10(1000), 100)
+            if freq is None
+            else freq
+        )
 
         S = self.spectral_matrix(freq, J)
         m = freq.size(0)
@@ -97,7 +112,11 @@ class matrix_solution:
         """
         i = self.N // 2 if i is None else i
         j = self.N // 2 + 1 if j is None else j
-        freq = torch.logspace(np.log10(0.001), np.log10(1000), 100) if freq is None else freq
+        freq = (
+            torch.logspace(np.log10(0.001), np.log10(1000), 100)
+            if freq is None
+            else freq
+        )
 
         S = self.spectral_matrix(freq, J)
         m = freq.size(0)
@@ -118,16 +137,23 @@ class matrix_solution:
         """
         i = self.N // 2 if i is None else i
         j = self.N // 2 + 1 if j is None else j
-        freq = torch.logspace(np.log10(0.001), np.log10(1000), 100) if freq is None else freq
+        freq = (
+            torch.logspace(np.log10(0.001), np.log10(1000), 100)
+            if freq is None
+            else freq
+        )
 
         S = self.spectral_matrix(freq, J)
         m = freq.size(0)
 
         coh = torch.zeros(m, device=device, dtype=torch.cdouble)
         for k in range(m):
-            coh[k] = torch.squeeze(torch.abs(S[k, i, j])**2 / (torch.real(S[k, i, i]) * torch.real(S[k, j, j])))
+            coh[k] = torch.squeeze(
+                torch.abs(S[k, i, j]) ** 2
+                / (torch.real(S[k, i, i]) * torch.real(S[k, j, j]))
+            )
         return coh.cpu(), freq
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass

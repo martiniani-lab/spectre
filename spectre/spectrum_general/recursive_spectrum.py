@@ -6,7 +6,6 @@ import os
 import timeit
 from functools import lru_cache
 
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 torch.set_default_dtype(torch.float64)
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
@@ -25,7 +24,7 @@ class recursive_solution:
         self.J = sp.Matrix([[sp.Rational(str(j)) for j in i] for i in J.tolist()])
         self.L = sp.Matrix([[sp.Rational(str(j)) for j in i] for i in L.tolist()])
         self.S = sp.Matrix([[sp.Rational(str(j)) for j in i] for i in S.tolist()])
-        self.D = self.S ** 2
+        self.D = self.S**2
         self.C = self.L * self.D * self.L.T
         self.n = J.shape[0]
 
@@ -34,7 +33,7 @@ class recursive_solution:
         self.P_prime = [sp.zeros(self.n, self.n) for _ in range(self.n)]
         self.Q = [sp.zeros(self.n, self.n) for _ in range(self.n + 1)]
         self.Q_prime = [sp.zeros(self.n, self.n) for _ in range(self.n)]
-        self.q = [sp.Rational('1') for _ in range(self.n + 1)]
+        self.q = [sp.Rational("1") for _ in range(self.n + 1)]
 
         """Find the solution matrices"""
         self.find_solution_recursive()
@@ -45,14 +44,28 @@ class recursive_solution:
         and the coefficients of the denominator recursively.
         :return: None
         """
-        self.P[self.n-1] = self.q[self.n] * self.C
-        self.Q[self.n-1] = sp.eye(self.n)
+        self.P[self.n - 1] = self.q[self.n] * self.C
+        self.Q[self.n - 1] = sp.eye(self.n)
         for alpha in range(self.n - 1, 0, -1):
-            self.P_prime[alpha - 1] = recursive_solution.P_prime(self.J, self.P[alpha], self.P_prime[alpha])
-            self.Q_prime[alpha - 1] = recursive_solution.P_prime(self.J, self.Q[alpha], self.Q_prime[alpha])
-            self.q[alpha] = recursive_solution.q(self.J, self.Q_prime[alpha - 1], self.Q[alpha], self.n, alpha)
-            self.P[alpha - 1] = recursive_solution.P(self.q[alpha], self.C, self.P_prime[alpha - 1], self.J, self.P[alpha])
-            self.Q[alpha - 1] = recursive_solution.P(self.q[alpha], sp.eye(self.n), self.Q_prime[alpha - 1], self.J, self.Q[alpha])
+            self.P_prime[alpha - 1] = recursive_solution.P_prime(
+                self.J, self.P[alpha], self.P_prime[alpha]
+            )
+            self.Q_prime[alpha - 1] = recursive_solution.P_prime(
+                self.J, self.Q[alpha], self.Q_prime[alpha]
+            )
+            self.q[alpha] = recursive_solution.q(
+                self.J, self.Q_prime[alpha - 1], self.Q[alpha], self.n, alpha
+            )
+            self.P[alpha - 1] = recursive_solution.P(
+                self.q[alpha], self.C, self.P_prime[alpha - 1], self.J, self.P[alpha]
+            )
+            self.Q[alpha - 1] = recursive_solution.P(
+                self.q[alpha],
+                sp.eye(self.n),
+                self.Q_prime[alpha - 1],
+                self.J,
+                self.Q[alpha],
+            )
         self.q[0] = recursive_solution.q(self.J, self.Q_prime[-1], self.Q[0], self.n, 0)
         return None
 
@@ -112,7 +125,7 @@ class recursive_solution:
         :param idx2: the index of the 2nd variable for which the auto-spectrum is desired.
         :return: the coefficients of the imag part of the numerator of the cross-spectrum.
         """
-        return [self.P_prime[i][idx1, idx2] for i in range(self.n-1)]
+        return [self.P_prime[i][idx1, idx2] for i in range(self.n - 1)]
 
     def auto_spectrum(self, idx, frequency=None):
         """
@@ -124,7 +137,11 @@ class recursive_solution:
          Note, here we follow 0 indexing.
         :return: the auto-PSD for the given variable.
         """
-        frequency = torch.logspace(np.log10(1), np.log10(1000), 100) if frequency is None else frequency
+        frequency = (
+            torch.logspace(np.log10(1), np.log10(1000), 100)
+            if frequency is None
+            else frequency
+        )
 
         # Convert the frequency from Hz to omega
         freq = sp.Matrix([sp.Rational(str(i)) for i in frequency.tolist()])
@@ -133,10 +150,10 @@ class recursive_solution:
 
         # Denominator
         q_all = self.q_all_coeffs()
-        powers = 2 * torch.arange(n+1)
+        powers = 2 * torch.arange(n + 1)
         denm = torch.zeros(om.shape[0])
         for j in range(om.shape[0]):
-            for m in range(n+1):
+            for m in range(n + 1):
                 denm[j] += float(q_all[m] * om[j] ** powers[m])
 
         # Numerator
@@ -160,18 +177,24 @@ class recursive_solution:
         is desired. Note, here we follow 0 indexing.
         :return: the cross-PSD for the given variables.
         """
-        frequency = torch.logspace(np.log10(1), np.log10(1000), 100) if frequency is None else frequency
+        frequency = (
+            torch.logspace(np.log10(1), np.log10(1000), 100)
+            if frequency is None
+            else frequency
+        )
         # Convert the frequency from Hz to omega
-        freq = sp.Matrix([sp.Rational(str(i)) for i in frequency.round(decimals=5).tolist()])
+        freq = sp.Matrix(
+            [sp.Rational(str(i)) for i in frequency.round(decimals=5).tolist()]
+        )
         om = 2 * sp.pi * freq
         n = self.n
 
         # Denominator
         q_all = self.q_all_coeffs()
-        powers = 2 * torch.arange(n+1)
+        powers = 2 * torch.arange(n + 1)
         denm = torch.zeros(om.shape[0])
         for j in range(om.shape[0]):
-            for m in range(n+1):
+            for m in range(n + 1):
                 denm[j] += float(q_all[m] * om[j] ** powers[m])
 
         # Numerator (real part)
@@ -184,10 +207,10 @@ class recursive_solution:
 
         # Numerator (Imaginary part)
         p_i_all = self.p_cross_i_all_coeffs(idx1, idx2)
-        powers = 2 * torch.arange(n-1) + 1
+        powers = 2 * torch.arange(n - 1) + 1
         num_i = torch.zeros(om.shape[0])
         for k in range(om.shape[0]):
-            for m in range(n-1):
+            for m in range(n - 1):
                 num_i[k] += float(p_i_all[m] * om[k] ** powers[m])
 
         num = num_r + 1j * num_i
@@ -205,9 +228,15 @@ class recursive_solution:
         desired. Note, here we follow 0 indexing.
         :return: the coherence: |Sxy|^2 / (Sxx * Syy), between the given variables.
         """
-        frequency = torch.logspace(np.log10(1), np.log10(1000), 100) if frequency is None else frequency
+        frequency = (
+            torch.logspace(np.log10(1), np.log10(1000), 100)
+            if frequency is None
+            else frequency
+        )
         # Convert the frequency from Hz to omega
-        freq = sp.Matrix([sp.Rational(str(i)) for i in frequency.round(decimals=5).tolist()])
+        freq = sp.Matrix(
+            [sp.Rational(str(i)) for i in frequency.round(decimals=5).tolist()]
+        )
         om = 2 * sp.pi * freq
         n = self.n
 
@@ -220,10 +249,10 @@ class recursive_solution:
                 num_r[k] += float(p_r_all[m] * om[k] ** powers[m])
 
         p_i_all = self.p_cross_i_all_coeffs(idx1, idx2)
-        powers = 2 * torch.arange(n-1) + 1
+        powers = 2 * torch.arange(n - 1) + 1
         num_i = torch.zeros(om.shape[0])
         for k in range(om.shape[0]):
-            for m in range(n-1):
+            for m in range(n - 1):
                 num_i[k] += float(p_i_all[m] * om[k] ** powers[m])
 
         num = num_r**2 + num_i**2
@@ -249,5 +278,5 @@ class recursive_solution:
         return coh, frequency
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass

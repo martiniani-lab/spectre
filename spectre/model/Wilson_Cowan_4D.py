@@ -1,4 +1,5 @@
 """We define the class for simulating the Wilson-Cowan 4D model."""
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -14,8 +15,6 @@ from spectre.spectrum_general.matrix_spectrum import matrix_solution
 from spectre.spectrum_general.sim_spectrum import sim_solution
 from spectre.spectrum_general.spectrum import element_wise
 import os
-
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
@@ -45,7 +44,7 @@ class WC4D(_dyn_models):
         self._W_EI = 5.0
         self._W_IE = 3.5
         self._W_II = 3.0
-        
+
         """More parameters"""
         self._gammaE = 1.0
         self._gammaI = 2.0
@@ -286,9 +285,24 @@ class WC4D(_dyn_models):
             raise ValueError("Noise type must be either additive or multiplicative")
 
     def get_instance_variables(self):
-        return (self.eta1, self.eta2, self.tauE, self.tauI, self.tauSE, self.tauSI,
-                self.W_EE, self.W_EI, self.W_IE, self.W_II, self.gammaE,
-                self.gammaI, self.thetaE, self.thetaI, self.kappaE, self.kappaI)
+        return (
+            self.eta1,
+            self.eta2,
+            self.tauE,
+            self.tauI,
+            self.tauSE,
+            self.tauSI,
+            self.W_EE,
+            self.W_EI,
+            self.W_IE,
+            self.W_II,
+            self.gammaE,
+            self.gammaI,
+            self.thetaE,
+            self.thetaI,
+            self.kappaE,
+            self.kappaI,
+        )
 
     @staticmethod
     def sigmoid(x):
@@ -359,20 +373,28 @@ class WC4D(_dyn_models):
         :param x: The state of the circuit.
         :return: The derivative of the circuit at the current time-step.
         """
-        x = x.squeeze(0) # Remove the extra dimension during sde simulation
+        x = x.squeeze(0)  # Remove the extra dimension during sde simulation
         # write the code below by slicing the tensor x
         E = x[0:1]
         I = x[1:2]
         SE = x[2:3]
         SI = x[3:4]
-        dEdt = (-E + WC4D.sigmoid((self.IE + self.W_EE * SE - self.W_EI * SI -
-                                   self.thetaE) / self.kappaE)) / self.tauE
-        dIdt = (-I + WC4D.sigmoid((self.II + self.W_IE * SE - self.W_II * SI -
-                                   self.thetaI) / self.kappaI)) / self.tauI
+        dEdt = (
+            -E
+            + WC4D.sigmoid(
+                (self.IE + self.W_EE * SE - self.W_EI * SI - self.thetaE) / self.kappaE
+            )
+        ) / self.tauE
+        dIdt = (
+            -I
+            + WC4D.sigmoid(
+                (self.II + self.W_IE * SE - self.W_II * SI - self.thetaI) / self.kappaI
+            )
+        ) / self.tauI
         dSEdt = (-SE + self.gammaE * E * (1 - SE) + self.sE) / self.tauSE
         dSIdt = (-SI + self.gammaI * I * (1 - SI) + self.sI) / self.tauSI
         return torch.cat((dEdt, dIdt, dSEdt, dSIdt))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass

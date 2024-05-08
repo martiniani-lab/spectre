@@ -9,13 +9,11 @@ import os
 import timeit
 from functools import lru_cache
 
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-
-
 torch.set_default_dtype(torch.float64)
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
 # n_cores = 1
+
 
 class element_wise:
     def __init__(self, J=-torch.eye(3), L=torch.eye(3), S=torch.eye(3)):
@@ -32,16 +30,18 @@ class element_wise:
         self.J = sp.Matrix([[sp.Rational(str(j)) for j in i] for i in J.tolist()])
         self.L = sp.Matrix([[sp.Rational(str(j)) for j in i] for i in L.tolist()])
         self.S = sp.Matrix([[sp.Rational(str(j)) for j in i] for i in S.tolist()])
-        
+
         self.n = J.shape[0]
 
         # we define the index matrix and the l matrix
         self.l = torch.zeros(self.n, self.n, dtype=torch.int64)
         idx = torch.ones((self.n, self.n, self.n, self.n), dtype=torch.bool)
-        index_row = np.tile(np.arange(self.n - 1).astype(np.ushort),
-                            (self.n, self.n, 1))
-        index_col = np.tile(np.arange(self.n - 1).astype(np.ushort),
-                            (self.n, self.n, 1))
+        index_row = np.tile(
+            np.arange(self.n - 1).astype(np.ushort), (self.n, self.n, 1)
+        )
+        index_col = np.tile(
+            np.arange(self.n - 1).astype(np.ushort), (self.n, self.n, 1)
+        )
         self.l = sp.Matrix([[sp.Rational(str(j)) for j in i] for i in self.l.tolist()])
 
         for i in range(self.n):
@@ -51,10 +51,14 @@ class element_wise:
                 if not i == j:
                     if i > j:
                         self.l[i, j] = j
-                        index_col[i, j] = np.insert(np.delete(index_col[i, j], i - 1), j, i - 1)
+                        index_col[i, j] = np.insert(
+                            np.delete(index_col[i, j], i - 1), j, i - 1
+                        )
                     else:
                         self.l[i, j] = i
-                        index_row[i, j] = np.insert(np.delete(index_row[i, j], j - 1), i, j - 1)
+                        index_row[i, j] = np.insert(
+                            np.delete(index_row[i, j], j - 1), i, j - 1
+                        )
 
         index_row = torch.from_numpy(index_row.astype(np.int32)).long()
         index_col = torch.from_numpy(index_col.astype(np.int32)).long()
@@ -65,10 +69,14 @@ class element_wise:
         apply the row/column change operation using vmap
         """
         # Define the tensor storing the O matrices required for the solution, we first
-        self.O = J.repeat(self.n, self.n, 1, 1)[idx].reshape(self.n, self.n, self.n - 1, self.n - 1)
+        self.O = J.repeat(self.n, self.n, 1, 1)[idx].reshape(
+            self.n, self.n, self.n - 1, self.n - 1
+        )
         self.O = vmap(element_wise.make_O, in_dims=(0, 0, 0))(
             self.O.reshape(-1, self.n - 1, self.n - 1),
-            index_row.reshape(-1, self.n - 1), index_col.reshape(-1, self.n - 1))
+            index_row.reshape(-1, self.n - 1),
+            index_col.reshape(-1, self.n - 1),
+        )
         self.O = self.O.reshape(self.n, self.n, self.n - 1, self.n - 1).numpy()
 
         # We define the coefficients of the denominator. Note: all are the same.
@@ -124,7 +132,7 @@ class element_wise:
         if m == 1:
             return det
 
-        prods = [0] * (m-1)
+        prods = [0] * (m - 1)
 
         for j in range(1, m):
             prods[j - 1] = pdet
@@ -146,7 +154,10 @@ class element_wise:
         This function returns the set of O matrices [:][i] in rational form in sympy.
         """
         if i not in self.O_dict.keys():
-            l = [[[sp.Rational(str(k)) for k in j] for j in i] for i in self.O[:, i].tolist()]
+            l = [
+                [[sp.Rational(str(k)) for k in j] for j in i]
+                for i in self.O[:, i].tolist()
+            ]
             self.O_dict[i] = list(map(sp.matrices.ImmutableMatrix, l))
         return self.O_dict[i]
 
@@ -160,7 +171,11 @@ class element_wise:
         Note, here we follow indexing starting with 0.
         :return: the auto-PSD for the given variable.
         """
-        frequency = torch.logspace(np.log10(1), np.log10(1000), 100) if frequency is None else frequency
+        frequency = (
+            torch.logspace(np.log10(1), np.log10(1000), 100)
+            if frequency is None
+            else frequency
+        )
         # Convert the frequency from Hz to omega
         freq = sp.Matrix([sp.Rational(str(i)) for i in frequency.tolist()])
         om = 2 * sp.pi * freq
@@ -173,10 +188,10 @@ class element_wise:
         else:
             q_all = self.q_all
 
-        powers = 2 * torch.arange(n+1)
+        powers = 2 * torch.arange(n + 1)
         denm = torch.zeros(om.shape[0])
         for j in range(om.shape[0]):
-            for m in range(n+1):
+            for m in range(n + 1):
                 denm[j] += float(q_all[m] * om[j] ** powers[m])
 
         # Numerator
@@ -200,9 +215,15 @@ class element_wise:
         is desired. Note, here we follow 0 indexing.
         :return: the cross-PSD for the given variables.
         """
-        frequency = torch.logspace(np.log10(1), np.log10(1000), 100) if frequency is None else frequency
+        frequency = (
+            torch.logspace(np.log10(1), np.log10(1000), 100)
+            if frequency is None
+            else frequency
+        )
         # Convert the frequency from Hz to omega
-        freq = sp.Matrix([sp.Rational(str(i)) for i in frequency.round(decimals=5).tolist()])
+        freq = sp.Matrix(
+            [sp.Rational(str(i)) for i in frequency.round(decimals=5).tolist()]
+        )
         om = 2 * sp.pi * freq
         n = self.n
 
@@ -230,10 +251,10 @@ class element_wise:
 
         # Numerator (Imaginary part)
         p_i_all = self.p_cross_i_all_coeffs(idx1, idx2)
-        powers = 2 * torch.arange(n-1) + 1
+        powers = 2 * torch.arange(n - 1) + 1
         num_i = torch.zeros(om.shape[0])
         for k in range(om.shape[0]):
-            for m in range(n-1):
+            for m in range(n - 1):
                 num_i[k] += float(p_i_all[m] * om[k] ** powers[m])
 
         num = num_r + 1j * num_i
@@ -251,9 +272,15 @@ class element_wise:
         desired. Note, here we follow 0 indexing.
         :return: the coherence: |Sxy|^2 / (Sxx * Syy), between the given variables.
         """
-        frequency = torch.logspace(np.log10(1), np.log10(1000), 100) if frequency is None else frequency
+        frequency = (
+            torch.logspace(np.log10(1), np.log10(1000), 100)
+            if frequency is None
+            else frequency
+        )
         # Convert the frequency from Hz to omega
-        freq = sp.Matrix([sp.Rational(str(i)) for i in frequency.round(decimals=5).tolist()])
+        freq = sp.Matrix(
+            [sp.Rational(str(i)) for i in frequency.round(decimals=5).tolist()]
+        )
         om = 2 * sp.pi * freq
         n = self.n
 
@@ -266,10 +293,10 @@ class element_wise:
                 num_r[k] += float(p_r_all[m] * om[k] ** powers[m])
 
         p_i_all = self.p_cross_i_all_coeffs(idx1, idx2)
-        powers = 2 * torch.arange(n-1) + 1
+        powers = 2 * torch.arange(n - 1) + 1
         num_i = torch.zeros(om.shape[0])
         for k in range(om.shape[0]):
-            for m in range(n-1):
+            for m in range(n - 1):
                 num_i[k] += float(p_i_all[m] * om[k] ** powers[m])
 
         num = num_r**2 + num_i**2
@@ -320,13 +347,27 @@ class element_wise:
             temp += coeff0 * self.L[i, m] ** 2 * self.d(O[i], alpha)
             for j in range(n):
                 if not (j == i):
-                    temp += coeff0 * self.L[j, m] ** 2 * self.f(O[j], self.l[j, i], alpha)
-                    temp -= coeff0 * self.L[i, m] * self.L[j, m] * self.s_1(O[i], O[j], self.l[j, i], alpha)
+                    temp += (
+                        coeff0 * self.L[j, m] ** 2 * self.f(O[j], self.l[j, i], alpha)
+                    )
+                    temp -= (
+                        coeff0
+                        * self.L[i, m]
+                        * self.L[j, m]
+                        * self.s_1(O[i], O[j], self.l[j, i], alpha)
+                    )
             for j in range(n):
                 if not (j == i):
                     for k in range(j):
                         if not (k == i):
-                            temp += coeff0 * self.L[j, m] * self.L[k, m] * self.t_1(O[j], O[k], self.l[j, i], self.l[k, i], alpha)
+                            temp += (
+                                coeff0
+                                * self.L[j, m]
+                                * self.L[k, m]
+                                * self.t_1(
+                                    O[j], O[k], self.l[j, i], self.l[k, i], alpha
+                                )
+                            )
         return temp
 
     def p_cross_r_all_coeffs(self, i, j):
@@ -357,15 +398,32 @@ class element_wise:
             temp += coeff0 * self.L[i, m] * self.L[j, m] * self.h_1(Oi[i], Oj[j], alpha)
             for k in range(n):
                 if not (k == j):
-                    temp -= coeff0 * self.L[i, m] * self.L[k, m] * self.s_1(Oi[i], Oj[k], self.l[k, j], alpha)
+                    temp -= (
+                        coeff0
+                        * self.L[i, m]
+                        * self.L[k, m]
+                        * self.s_1(Oi[i], Oj[k], self.l[k, j], alpha)
+                    )
             for k in range(n):
                 if not (k == i):
-                    temp -= coeff0 * self.L[k, m] * self.L[j, m] * self.s_1(Oj[j], Oi[k], self.l[k, i], alpha)
+                    temp -= (
+                        coeff0
+                        * self.L[k, m]
+                        * self.L[j, m]
+                        * self.s_1(Oj[j], Oi[k], self.l[k, i], alpha)
+                    )
             for k in range(n):
                 if not (k == i):
                     for q in range(n):
                         if not (q == j):
-                            temp += coeff0 * self.L[k, m] * self.L[q, m] * self.t_1(Oi[k], Oj[q], self.l[i, k], self.l[j, q], alpha)
+                            temp += (
+                                coeff0
+                                * self.L[k, m]
+                                * self.L[q, m]
+                                * self.t_1(
+                                    Oi[k], Oj[q], self.l[i, k], self.l[j, q], alpha
+                                )
+                            )
         return temp
 
     def p_cross_i_all_coeffs(self, i, j):
@@ -376,7 +434,7 @@ class element_wise:
         :param j: the index of the 2nd variable for which the auto-spectrum is desired.
         :return: the coefficients of the imag part of the numerator of the cross-spectrum.
         """
-        alphas = np.arange(self.n-1)
+        alphas = np.arange(self.n - 1)
         Oi = self.O_dict_return(i)
         Oj = self.O_dict_return(j)
         coeffs = [self.p_cross_i(i, j, k.item(), Oi, Oj) for k in alphas]
@@ -396,19 +454,36 @@ class element_wise:
             temp -= coeff0 * self.L[i, m] * self.L[j, m] * self.h_2(Oi[i], Oj[j], alpha)
             for k in range(n):
                 if not (k == j):
-                    temp -= coeff0 * self.L[i, m] * self.L[k, m] * self.s_2(Oi[i], Oj[k], self.l[k, j], alpha)
+                    temp -= (
+                        coeff0
+                        * self.L[i, m]
+                        * self.L[k, m]
+                        * self.s_2(Oi[i], Oj[k], self.l[k, j], alpha)
+                    )
             for k in range(n):
                 if not (k == i):
-                    temp += coeff0 * self.L[k, m] * self.L[j, m] * self.s_2(Oj[j], Oi[k], self.l[k, i], alpha)
+                    temp += (
+                        coeff0
+                        * self.L[k, m]
+                        * self.L[j, m]
+                        * self.s_2(Oj[j], Oi[k], self.l[k, i], alpha)
+                    )
             for k in range(n):
                 if not (k == i):
                     for q in range(n):
                         if not (q == j):
-                            temp += coeff0 * self.L[k, m] * self.L[q, m] * self.t_2(Oi[k], Oj[q], self.l[i, k], self.l[j, q], alpha)
+                            temp += (
+                                coeff0
+                                * self.L[k, m]
+                                * self.L[q, m]
+                                * self.t_2(
+                                    Oi[k], Oj[q], self.l[i, k], self.l[j, q], alpha
+                                )
+                            )
         return temp
 
     def q_all_coeffs(self):
-        alphas = np.arange(self.n+1)
+        alphas = np.arange(self.n + 1)
         coeffs = [self.q(i.item()) for i in alphas]
         return coeffs
 
@@ -427,7 +502,11 @@ class element_wise:
         Returns the coefficient of w^{2*alpha}
         """
         n = A.shape[0]
-        return (-1) ** abs(n - alpha) * self.comp_bell(self.bell_inp(A, 2, n - alpha)) / sp.factorial(n - alpha)
+        return (
+            (-1) ** abs(n - alpha)
+            * self.comp_bell(self.bell_inp(A, 2, n - alpha))
+            / sp.factorial(n - alpha)
+        )
 
     def _g_1(self, A, B, alpha):
         """
@@ -439,10 +518,16 @@ class element_wise:
         for j in range(n + 1):
             k = 2 * alpha - j
             if k <= n - 1 and k >= 0:
-                coeff = 2 * (-1) ** abs(alpha - j - 1) / (sp.factorial(n - j) * sp.factorial(n - k - 1))
-                temp += coeff * self.comp_bell(
-                    self.bell_inp(A, 1, n - j)) * self.comp_bell(
-                    self.bell_inp(B, 1, n - k - 1))
+                coeff = (
+                    2
+                    * (-1) ** abs(alpha - j - 1)
+                    / (sp.factorial(n - j) * sp.factorial(n - k - 1))
+                )
+                temp += (
+                    coeff
+                    * self.comp_bell(self.bell_inp(A, 1, n - j))
+                    * self.comp_bell(self.bell_inp(B, 1, n - k - 1))
+                )
         return temp
 
     def _g_2(self, A, B, alpha):
@@ -455,10 +540,16 @@ class element_wise:
         for j in range(n + 1):
             k = 2 * alpha - 1 - j
             if k <= n - 1 and k >= 0:
-                coeff = 2 * (-1) ** abs(alpha - j - 1) / (sp.factorial(n - j) * sp.factorial(n - k - 1))
-                temp += coeff * self.comp_bell(
-                    self.bell_inp(A, 1, n - j)) * self.comp_bell(
-                    self.bell_inp(B, 1, n - k - 1))
+                coeff = (
+                    2
+                    * (-1) ** abs(alpha - j - 1)
+                    / (sp.factorial(n - j) * sp.factorial(n - k - 1))
+                )
+                temp += (
+                    coeff
+                    * self.comp_bell(self.bell_inp(A, 1, n - j))
+                    * self.comp_bell(self.bell_inp(B, 1, n - k - 1))
+                )
         return temp
 
     def _h_1(self, A, B, alpha):
@@ -471,10 +562,16 @@ class element_wise:
         for j in range(n + 1):
             k = 2 * alpha - j
             if k <= n and k >= 0:
-                coeff = 2 * (-1) ** abs(alpha - k) / (sp.factorial(n - j) * sp.factorial(n - k))
-                temp += coeff * self.comp_bell(
-                    self.bell_inp(A, 1, n - j)) * self.comp_bell(
-                    self.bell_inp(B, 1, n - k))
+                coeff = (
+                    2
+                    * (-1) ** abs(alpha - k)
+                    / (sp.factorial(n - j) * sp.factorial(n - k))
+                )
+                temp += (
+                    coeff
+                    * self.comp_bell(self.bell_inp(A, 1, n - j))
+                    * self.comp_bell(self.bell_inp(B, 1, n - k))
+                )
         return temp
 
     def _h_2(self, A, B, alpha):
@@ -487,10 +584,16 @@ class element_wise:
         for j in range(n + 1):
             k = 2 * alpha + 1 - j
             if k <= n and k >= 0:
-                coeff = 2 * (-1) ** abs(alpha - k) / (sp.factorial(n - j) * sp.factorial(n - k))
-                temp += coeff * self.comp_bell(
-                    self.bell_inp(A, 1, n - j)) * self.comp_bell(
-                    self.bell_inp(B, 1, n - k))
+                coeff = (
+                    2
+                    * (-1) ** abs(alpha - k)
+                    / (sp.factorial(n - j) * sp.factorial(n - k))
+                )
+                temp += (
+                    coeff
+                    * self.comp_bell(self.bell_inp(A, 1, n - j))
+                    * self.comp_bell(self.bell_inp(B, 1, n - k))
+                )
         return temp
 
     def _f(self, A, l, alpha):
@@ -513,7 +616,7 @@ class element_wise:
         See SI for definition.
         """
         C = element_wise.excluded_mat(B, l)
-        return - self.h_2(A, B, alpha) + self.g_1(A, C, alpha)
+        return -self.h_2(A, B, alpha) + self.g_1(A, C, alpha)
 
     def _t_1(self, A, B, l1, l2, alpha):
         """
@@ -521,7 +624,12 @@ class element_wise:
         """
         C = element_wise.excluded_mat(A, l1)
         D = element_wise.excluded_mat(B, l2)
-        return self.h_1(A, B, alpha) + self.h_1(C, D, alpha - 1) + self.g_2(B, C, alpha) + self.g_2(A, D, alpha)
+        return (
+            self.h_1(A, B, alpha)
+            + self.h_1(C, D, alpha - 1)
+            + self.g_2(B, C, alpha)
+            + self.g_2(A, D, alpha)
+        )
 
     def _t_2(self, A, B, l1, l2, alpha):
         """
@@ -529,7 +637,12 @@ class element_wise:
         """
         C = element_wise.excluded_mat(A, l1)
         D = element_wise.excluded_mat(B, l2)
-        return - self.h_2(A, B, alpha) - self.h_2(C, D, alpha - 1) - self.g_1(B, C, alpha) + self.g_1(A, D, alpha)
+        return (
+            -self.h_2(A, B, alpha)
+            - self.h_2(C, D, alpha - 1)
+            - self.g_1(B, C, alpha)
+            + self.g_1(A, D, alpha)
+        )
 
     def _bell_inp(self, mat, kappa, k):
         """
@@ -538,7 +651,7 @@ class element_wise:
         if k != 0:
             x = sp.zeros(k, 1)
             for i in range(0, k):
-                x[i] = - self.r_k(mat, kappa, i + 1)
+                x[i] = -self.r_k(mat, kappa, i + 1)
             return sp.ImmutableMatrix(x)
         else:
             return sp.ImmutableMatrix(sp.ones(1))
@@ -582,6 +695,5 @@ class element_wise:
         # return mat**p
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass
-

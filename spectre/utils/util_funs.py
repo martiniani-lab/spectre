@@ -22,7 +22,7 @@ def generate_stable_system(n):
     """
     A = torch.randn(n, n)
     L, V = torch.linalg.eig(A)
-    L = - torch.abs(torch.real(L)) + 1j*torch.imag(L)
+    L = -torch.abs(torch.real(L)) + 1j * torch.imag(L)
     return torch.real(V @ torch.diag(L) @ torch.linalg.inv(V))
 
 
@@ -35,6 +35,7 @@ def cholesky_decomposition(A):
     L = torch.linalg.cholesky(A)
     return L
 
+
 def make_square(L, S):
     """
     This function returns a square system from a rectanguar system.
@@ -46,9 +47,9 @@ def make_square(L, S):
     n = L.shape[0]
     m = L.shape[1]
     if n > m:
-        square_L = torch.cat((L, torch.zeros(n, n-m)), dim=1)
-        square_S = torch.cat((S, torch.zeros(m, n-m)), dim=1)
-        square_S = torch.cat((square_S, torch.zeros(n-m, n)), dim=0)
+        square_L = torch.cat((L, torch.zeros(n, n - m)), dim=1)
+        square_S = torch.cat((S, torch.zeros(m, n - m)), dim=1)
+        square_S = torch.cat((square_S, torch.zeros(n - m, n)), dim=0)
     elif n < m:
         # Calculate LDL decomposition
         lu, d, perm = ldl(C.numpy(), lower=0)

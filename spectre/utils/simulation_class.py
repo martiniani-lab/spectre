@@ -1,4 +1,5 @@
 """This file defines the class used for hte simulation of the SDE"""
+
 import torch.nn as nn
 import torch
 
@@ -30,7 +31,7 @@ class SDE_mul(nn.Module):
     def g(self, t, y):
         """Note that the L taken here is the constant L, that is what comes out of the
         additive noise source"""
-        Lt = self.outer_instance.make_Ly(t, y.squeeze(0)) # instantaneous L
+        Lt = self.outer_instance.make_Ly(t, y.squeeze(0))  # instantaneous L
         return (torch.diag(Lt @ self.outer_instance.S)).unsqueeze(0)
 
 

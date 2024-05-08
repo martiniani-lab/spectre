@@ -6,9 +6,6 @@ import os
 import timeit
 from functools import lru_cache
 
-
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-
 torch.set_default_dtype(torch.float64)
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
@@ -25,13 +22,18 @@ class symbolic:
         """
         super().__init__()
         # self.J = sp.Matrix([[sp.symbols('a%d%d' % (k, j)) for j in range(n)] for k in range(n)])
-        self.J = sp.symbols('J')
+        self.J = sp.symbols("J")
         self.L = L
         self.S = S
         self.n = n
 
-        self.O = [[sp.Symbol('O_{}{}'.format(i, j)) for j in range(self.n)] for i in range(self.n)]
-        self.O_prime = [[sp.Symbol('O_{}{}\''.format(i, j)) for j in range(n)] for i in range(n)]
+        self.O = [
+            [sp.Symbol("O_{}{}".format(i, j)) for j in range(self.n)]
+            for i in range(self.n)
+        ]
+        self.O_prime = [
+            [sp.Symbol("O_{}{}'".format(i, j)) for j in range(n)] for i in range(n)
+        ]
 
         # We define the coefficients of the denominator. Note: all are the same.
         self.q_all = None
@@ -51,7 +53,7 @@ class symbolic:
         if m == 1:
             return det
 
-        prods = [0] * (m-1)
+        prods = [0] * (m - 1)
 
         for j in range(1, m):
             prods[j - 1] = pdet
@@ -95,19 +97,32 @@ class symbolic:
             for j in range(n):
                 if not (j == i):
                     temp += coeff0 * self.L[j, m] ** 2 * self.f(O[j], None, alpha)
-                    temp -= coeff0 * self.L[i, m] * self.L[j, m] * self.s_1(O[i], O[j], None, alpha)
+                    temp -= (
+                        coeff0
+                        * self.L[i, m]
+                        * self.L[j, m]
+                        * self.s_1(O[i], O[j], None, alpha)
+                    )
             for j in range(n):
                 if not (j == i):
                     for k in range(j):
                         if not (k == i):
-                            temp += coeff0 * self.L[j, m] * self.L[k, m] * self.t_1(O[j], O[k], None, None, alpha)
+                            temp += (
+                                coeff0
+                                * self.L[j, m]
+                                * self.L[k, m]
+                                * self.t_1(O[j], O[k], None, None, alpha)
+                            )
         return temp
 
     def p_cross_r_all_coeffs(self, i, j):
         alphas = np.arange(self.n)
         Oi = [self.O[k][i] for k in range(self.n)]
         Oj = [self.O[k][j] for k in range(self.n)]
-        coeffs = [sp.together(sp.simplify(self.p_cross_r(i, j, k.item(), Oi, Oj))) for k in alphas]
+        coeffs = [
+            sp.together(sp.simplify(self.p_cross_r(i, j, k.item(), Oi, Oj)))
+            for k in alphas
+        ]
         return coeffs
 
     def p_cross_r(self, i, j, alpha, Oi, Oj):
@@ -124,22 +139,40 @@ class symbolic:
             temp += coeff0 * self.L[i, m] * self.L[j, m] * self.h_1(Oi[i], Oj[j], alpha)
             for k in range(n):
                 if not (k == j):
-                    temp -= coeff0 * self.L[i, m] * self.L[k, m] * self.s_1(Oi[i], Oj[k], None, alpha)
+                    temp -= (
+                        coeff0
+                        * self.L[i, m]
+                        * self.L[k, m]
+                        * self.s_1(Oi[i], Oj[k], None, alpha)
+                    )
             for k in range(n):
                 if not (k == i):
-                    temp -= coeff0 * self.L[k, m] * self.L[j, m] * self.s_1(Oj[j], Oi[k], None, alpha)
+                    temp -= (
+                        coeff0
+                        * self.L[k, m]
+                        * self.L[j, m]
+                        * self.s_1(Oj[j], Oi[k], None, alpha)
+                    )
             for k in range(n):
                 if not (k == i):
                     for q in range(n):
                         if not (q == j):
-                            temp += coeff0 * self.L[k, m] * self.L[q, m] * self.t_1(Oi[k], Oj[q], None, None, alpha)
+                            temp += (
+                                coeff0
+                                * self.L[k, m]
+                                * self.L[q, m]
+                                * self.t_1(Oi[k], Oj[q], None, None, alpha)
+                            )
         return temp
 
     def p_cross_i_all_coeffs(self, i, j):
-        alphas = np.arange(self.n-1)
+        alphas = np.arange(self.n - 1)
         Oi = [self.O[k][i] for k in range(self.n)]
         Oj = [self.O[k][j] for k in range(self.n)]
-        coeffs = [sp.together(sp.simplify(self.p_cross_i(i, j, k.item(), Oi, Oj))) for k in alphas]
+        coeffs = [
+            sp.together(sp.simplify(self.p_cross_i(i, j, k.item(), Oi, Oj)))
+            for k in alphas
+        ]
         return coeffs
 
     def p_cross_i(self, i, j, alpha, Oi, Oj):
@@ -156,19 +189,34 @@ class symbolic:
             temp -= coeff0 * self.L[i, m] * self.L[j, m] * self.h_2(Oi[i], Oj[j], alpha)
             for k in range(n):
                 if not (k == j):
-                    temp -= coeff0 * self.L[i, m] * self.L[k, m] * self.s_2(Oi[i], Oj[k], None, alpha)
+                    temp -= (
+                        coeff0
+                        * self.L[i, m]
+                        * self.L[k, m]
+                        * self.s_2(Oi[i], Oj[k], None, alpha)
+                    )
             for k in range(n):
                 if not (k == i):
-                    temp += coeff0 * self.L[k, m] * self.L[j, m] * self.s_2(Oj[j], Oi[k], None, alpha)
+                    temp += (
+                        coeff0
+                        * self.L[k, m]
+                        * self.L[j, m]
+                        * self.s_2(Oj[j], Oi[k], None, alpha)
+                    )
             for k in range(n):
                 if not (k == i):
                     for q in range(n):
                         if not (q == j):
-                            temp += coeff0 * self.L[k, m] * self.L[q, m] * self.t_2(Oi[k], Oj[q], None, None, alpha)
+                            temp += (
+                                coeff0
+                                * self.L[k, m]
+                                * self.L[q, m]
+                                * self.t_2(Oi[k], Oj[q], None, None, alpha)
+                            )
         return temp
 
     def q_all_coeffs(self):
-        alphas = np.arange(self.n+1)
+        alphas = np.arange(self.n + 1)
         coeffs = [sp.together(sp.simplify(self.q(i.item()))) for i in alphas]
         return coeffs
 
@@ -187,7 +235,11 @@ class symbolic:
         Returns the coefficient of w^{2*alpha}
         """
         n = self.shape(A)
-        return (-1) ** abs(n - alpha) * self.comp_bell(self.bell_inp(A, 2, n - alpha)) / sp.factorial(n - alpha)
+        return (
+            (-1) ** abs(n - alpha)
+            * self.comp_bell(self.bell_inp(A, 2, n - alpha))
+            / sp.factorial(n - alpha)
+        )
 
     def g_1(self, A, B, alpha):
         """
@@ -199,10 +251,16 @@ class symbolic:
         for j in range(n + 1):
             k = 2 * alpha - j
             if k <= n - 1 and k >= 0:
-                coeff = 2 * (-1) ** abs(alpha - j - 1) / (sp.factorial(n - j) * sp.factorial(n - k - 1))
-                temp += coeff * self.comp_bell(
-                    self.bell_inp(A, 1, n - j)) * self.comp_bell(
-                    self.bell_inp(B, 1, n - k - 1))
+                coeff = (
+                    2
+                    * (-1) ** abs(alpha - j - 1)
+                    / (sp.factorial(n - j) * sp.factorial(n - k - 1))
+                )
+                temp += (
+                    coeff
+                    * self.comp_bell(self.bell_inp(A, 1, n - j))
+                    * self.comp_bell(self.bell_inp(B, 1, n - k - 1))
+                )
         return temp
 
     def g_2(self, A, B, alpha):
@@ -215,10 +273,16 @@ class symbolic:
         for j in range(n + 1):
             k = 2 * alpha - 1 - j
             if k <= n - 1 and k >= 0:
-                coeff = 2 * (-1) ** abs(alpha - j - 1) / (sp.factorial(n - j) * sp.factorial(n - k - 1))
-                temp += coeff * self.comp_bell(
-                    self.bell_inp(A, 1, n - j)) * self.comp_bell(
-                    self.bell_inp(B, 1, n - k - 1))
+                coeff = (
+                    2
+                    * (-1) ** abs(alpha - j - 1)
+                    / (sp.factorial(n - j) * sp.factorial(n - k - 1))
+                )
+                temp += (
+                    coeff
+                    * self.comp_bell(self.bell_inp(A, 1, n - j))
+                    * self.comp_bell(self.bell_inp(B, 1, n - k - 1))
+                )
         return temp
 
     def h_1(self, A, B, alpha):
@@ -231,10 +295,16 @@ class symbolic:
         for j in range(n + 1):
             k = 2 * alpha - j
             if k <= n and k >= 0:
-                coeff = 2 * (-1) ** abs(alpha - k) / (sp.factorial(n - j) * sp.factorial(n - k))
-                temp += coeff * self.comp_bell(
-                    self.bell_inp(A, 1, n - j)) * self.comp_bell(
-                    self.bell_inp(B, 1, n - k))
+                coeff = (
+                    2
+                    * (-1) ** abs(alpha - k)
+                    / (sp.factorial(n - j) * sp.factorial(n - k))
+                )
+                temp += (
+                    coeff
+                    * self.comp_bell(self.bell_inp(A, 1, n - j))
+                    * self.comp_bell(self.bell_inp(B, 1, n - k))
+                )
         return temp
 
     def h_2(self, A, B, alpha):
@@ -247,10 +317,16 @@ class symbolic:
         for j in range(n + 1):
             k = 2 * alpha + 1 - j
             if k <= n and k >= 0:
-                coeff = 2 * (-1) ** abs(alpha - k) / (sp.factorial(n - j) * sp.factorial(n - k))
-                temp += coeff * self.comp_bell(
-                    self.bell_inp(A, 1, n - j)) * self.comp_bell(
-                    self.bell_inp(B, 1, n - k))
+                coeff = (
+                    2
+                    * (-1) ** abs(alpha - k)
+                    / (sp.factorial(n - j) * sp.factorial(n - k))
+                )
+                temp += (
+                    coeff
+                    * self.comp_bell(self.bell_inp(A, 1, n - j))
+                    * self.comp_bell(self.bell_inp(B, 1, n - k))
+                )
         return temp
 
     def f(self, A, l, alpha):
@@ -258,38 +334,48 @@ class symbolic:
         See SI for definition.
         """
         # Calculate minor about l,l element
-        B = self.add_string(A, '\'')
+        B = self.add_string(A, "'")
         return self.d(A, alpha) + self.d(B, alpha - 1) + self.g_2(A, B, alpha)
 
     def s_1(self, A, B, l, alpha):
         """
         See SI for definition.
         """
-        C = self.add_string(B, '\'')
+        C = self.add_string(B, "'")
         return self.h_1(A, B, alpha) + self.g_2(A, C, alpha)
 
     def s_2(self, A, B, l, alpha):
         """
         See SI for definition.
         """
-        C = self.add_string(B, '\'')
-        return - self.h_2(A, B, alpha) + self.g_1(A, C, alpha)
+        C = self.add_string(B, "'")
+        return -self.h_2(A, B, alpha) + self.g_1(A, C, alpha)
 
     def t_1(self, A, B, l1, l2, alpha):
         """
         See SI for definition.
         """
-        C = self.add_string(A, '\'')
-        D = self.add_string(B, '\'')
-        return self.h_1(A, B, alpha) + self.h_1(C, D, alpha - 1) + self.g_2(B, C, alpha) + self.g_2(A, D, alpha)
+        C = self.add_string(A, "'")
+        D = self.add_string(B, "'")
+        return (
+            self.h_1(A, B, alpha)
+            + self.h_1(C, D, alpha - 1)
+            + self.g_2(B, C, alpha)
+            + self.g_2(A, D, alpha)
+        )
 
     def t_2(self, A, B, l1, l2, alpha):
         """
         See SI for definition.
         """
-        C = self.add_string(A, '\'')
-        D = self.add_string(B, '\'')
-        return - self.h_2(A, B, alpha) - self.h_2(C, D, alpha - 1) - self.g_1(B, C, alpha) + self.g_1(A, D, alpha)
+        C = self.add_string(A, "'")
+        D = self.add_string(B, "'")
+        return (
+            -self.h_2(A, B, alpha)
+            - self.h_2(C, D, alpha - 1)
+            - self.g_1(B, C, alpha)
+            + self.g_1(A, D, alpha)
+        )
 
     def bell_inp(self, mat, kappa, k):
         """
@@ -298,7 +384,7 @@ class symbolic:
         if k != 0:
             x = sp.zeros(k, 1)
             for i in range(0, k):
-                x[i] = - self.r_k(mat, kappa, i + 1)
+                x[i] = -self.r_k(mat, kappa, i + 1)
             return sp.ImmutableMatrix(x)
         else:
             return sp.ImmutableMatrix(sp.ones(1))
@@ -322,15 +408,15 @@ class symbolic:
         This function calculates the k-th power sum.
         """
         return self.Tr(self.mat_power(mat, kappa * k))
-    
+
     @staticmethod
     def Tr(x):
-        return sp.Function('Tr')(x)
+        return sp.Function("Tr")(x)
 
     @staticmethod
     def mat_power(mat, p):
         return sp.sympify(mat**p)
-    
+
     @staticmethod
     def add_string(a, string):
         return sp.Symbol(string.join([str(a)[:1], str(a)[1:]]))
@@ -338,11 +424,11 @@ class symbolic:
     def shape(self, mat):
         if mat == self.J:
             return self.n
-        elif str(mat)[1] == '\'':
+        elif str(mat)[1] == "'":
             return self.n - 2
         else:
             return self.n - 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass

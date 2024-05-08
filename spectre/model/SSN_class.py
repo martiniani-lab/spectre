@@ -1,4 +1,5 @@
 """We define the class for simulating the Stabilized-supralinear-network (SSN) model."""
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -16,8 +17,6 @@ from spectre.spectrum_general.sim_spectrum import sim_solution
 from spectre.spectrum_general.spectrum import element_wise
 import os
 
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
-
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
 
@@ -29,9 +28,9 @@ class SSN(_dyn_models):
         This function initializes the various parameters of the SSN model. See 
         supplementary material for details.
         """
-        self._N = N # Number of units in the network
+        self._N = N  # Number of units in the network
         self.dim = 2 * self._N
-        self._eta = eta # Strength of the noise
+        self._eta = eta  # Strength of the noise
         self._tauE = 0.006
         self._tauI = 0.004
 
@@ -231,7 +230,9 @@ class SSN(_dyn_models):
             self._k = k
             self.initialize_circuit()
         else:
-            raise ValueError("Supralinear activation parameter must be a positive float")
+            raise ValueError(
+                "Supralinear activation parameter must be a positive float"
+            )
 
     @property
     def n(self):
@@ -258,9 +259,23 @@ class SSN(_dyn_models):
             raise ValueError("Noise type must be either additive or multiplicative")
 
     def get_instance_variables(self):
-        return (self.N, self.eta, self.tauE, self.tauI, self.delta_x, self.J_EE,
-                self.J_IE, self.J_EI, self.J_II, self.sigma_EE, self.sigma_IE,
-                self.l, self.c, self.k, self.n)
+        return (
+            self.N,
+            self.eta,
+            self.tauE,
+            self.tauI,
+            self.delta_x,
+            self.J_EE,
+            self.J_IE,
+            self.J_EI,
+            self.J_II,
+            self.sigma_EE,
+            self.sigma_IE,
+            self.l,
+            self.c,
+            self.k,
+            self.n,
+        )
 
     def calculate_dim(self):
         """
@@ -278,7 +293,7 @@ class SSN(_dyn_models):
         :param sigma: The spread of the weights
         :return: The N x N weight matrix
         """
-        x = delta_x * torch.linspace(1, N, N) - (N+1)/2
+        x = delta_x * torch.linspace(1, N, N) - (N + 1) / 2
         x = torch.reshape(x, (N, 1))
         W = J * SSN.gaussian(x, x.T, sigma)
         return W
@@ -294,7 +309,7 @@ class SSN(_dyn_models):
     @staticmethod
     def check_eig(mat):
         """Checks if all the eigenvalues of a matrix have real part<0, ei, they describe
-         a stable dynamical system."""
+        a stable dynamical system."""
         return torch.all(torch.real(torch.linalg.eigvals(mat)) < 0)
 
     def initialize_circuit(self):
@@ -311,8 +326,12 @@ class SSN(_dyn_models):
         """Make the weight matrices"""
         self.W_EI = self.J_EI * torch.eye(self.N)
         self.W_II = self.J_II * torch.eye(self.N)
-        self.W_EE = self.make_weight_matrix(self.N, self.J_EE, self.delta_x, self.sigma_EE)
-        self.W_IE = self.make_weight_matrix(self.N, self.J_IE, self.delta_x, self.sigma_IE)
+        self.W_EE = self.make_weight_matrix(
+            self.N, self.J_EE, self.delta_x, self.sigma_EE
+        )
+        self.W_IE = self.make_weight_matrix(
+            self.N, self.J_IE, self.delta_x, self.sigma_IE
+        )
 
         """Make the jacobian"""
         time = 1
@@ -332,9 +351,17 @@ class SSN(_dyn_models):
         but in future maybe (to change stimulus position in space).
         :return: the N dimensional input stimulus.
         """
-        N = self.N; delta_x = self.delta_x; sigma = self.sigma_RF; l = self.l; c = self.c
-        x = (torch.linspace(1, N, N) - (N+1)/2 ) * delta_x
-        input = c * (1 / (1 + torch.exp(- (x + l/2) / sigma))) * (1 - 1 / (1 + torch.exp(- (x - l/2) / sigma)))
+        N = self.N
+        delta_x = self.delta_x
+        sigma = self.sigma_RF
+        l = self.l
+        c = self.c
+        x = (torch.linspace(1, N, N) - (N + 1) / 2) * delta_x
+        input = (
+            c
+            * (1 / (1 + torch.exp(-(x + l / 2) / sigma)))
+            * (1 - 1 / (1 + torch.exp(-(x - l / 2) / sigma)))
+        )
         return input
 
     def make_Ly(self, t, x):
@@ -352,8 +379,8 @@ class SSN(_dyn_models):
         :return: The D matrix
         """
         D = torch.zeros(self.dim)
-        D[0:self.N] = 1/self.tauE
-        D[self.N:] = 1/self.tauI
+        D[0 : self.N] = 1 / self.tauE
+        D[self.N :] = 1 / self.tauI
         return torch.diag(D)
 
     @dynm_fun
@@ -363,15 +390,15 @@ class SSN(_dyn_models):
         :param x: The state of the network.
         :return: The derivative of the network at the current time-step.
         """
-        x = x.squeeze(0) # Remove the extra dimension during sde simulation
-        E = x[0:self.N]
-        I = x[self.N:2*self.N]
+        x = x.squeeze(0)  # Remove the extra dimension during sde simulation
+        E = x[0 : self.N]
+        I = x[self.N : 2 * self.N]
         inputE = self.input + torch.matmul(self.W_EE, E) - torch.matmul(self.W_EI, I)
         inputI = self.input + torch.matmul(self.W_IE, E) - torch.matmul(self.W_II, I)
-        dEdt = (1 / self.tauE) * (-E + self.k * (F.relu(inputE))**self.n)
-        dIdt = (1 / self.tauI) * (-I + self.k * (F.relu(inputI))**self.n)
+        dEdt = (1 / self.tauE) * (-E + self.k * (F.relu(inputE)) ** self.n)
+        dIdt = (1 / self.tauI) * (-I + self.k * (F.relu(inputI)) ** self.n)
         return torch.cat((dEdt, dIdt))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass

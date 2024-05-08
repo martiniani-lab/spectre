@@ -5,7 +5,6 @@ import os
 import timeit
 from functools import lru_cache
 
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 torch.set_default_dtype(torch.float64)
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
@@ -44,15 +43,31 @@ class recursive_solution_np:
         and the coefficients of the denominator recursively.
         :return: None
         """
-        self.P[self.n-1] = self.q[self.n] * self.C
-        self.Q[self.n-1] = np.eye(self.n)
+        self.P[self.n - 1] = self.q[self.n] * self.C
+        self.Q[self.n - 1] = np.eye(self.n)
         for alpha in range(self.n - 1, 0, -1):
-            self.P_prime[alpha - 1] = recursive_solution_np.P_prime(self.J, self.P[alpha], self.P_prime[alpha])
-            self.Q_prime[alpha - 1] = recursive_solution_np.P_prime(self.J, self.Q[alpha], self.Q_prime[alpha])
-            self.q[alpha] = recursive_solution_np.q(self.J, self.Q_prime[alpha - 1], self.Q[alpha], self.n, alpha)
-            self.P[alpha - 1] = recursive_solution_np.P(self.q[alpha], self.C, self.P_prime[alpha - 1], self.J, self.P[alpha])
-            self.Q[alpha - 1] = recursive_solution_np.P(self.q[alpha], np.eye(self.n), self.Q_prime[alpha - 1], self.J, self.Q[alpha])
-        self.q[0] = recursive_solution_np.q(self.J, self.Q_prime[-1], self.Q[0], self.n, 0)
+            self.P_prime[alpha - 1] = recursive_solution_np.P_prime(
+                self.J, self.P[alpha], self.P_prime[alpha]
+            )
+            self.Q_prime[alpha - 1] = recursive_solution_np.P_prime(
+                self.J, self.Q[alpha], self.Q_prime[alpha]
+            )
+            self.q[alpha] = recursive_solution_np.q(
+                self.J, self.Q_prime[alpha - 1], self.Q[alpha], self.n, alpha
+            )
+            self.P[alpha - 1] = recursive_solution_np.P(
+                self.q[alpha], self.C, self.P_prime[alpha - 1], self.J, self.P[alpha]
+            )
+            self.Q[alpha - 1] = recursive_solution_np.P(
+                self.q[alpha],
+                np.eye(self.n),
+                self.Q_prime[alpha - 1],
+                self.J,
+                self.Q[alpha],
+            )
+        self.q[0] = recursive_solution_np.q(
+            self.J, self.Q_prime[-1], self.Q[0], self.n, 0
+        )
         return None
 
     @staticmethod
@@ -111,8 +126,8 @@ class recursive_solution_np:
         :param idx2: the index of the 2nd variable for which the auto-spectrum is desired.
         :return: the coefficients of the imag part of the numerator of the cross-spectrum.
         """
-        return [self.P_prime[i][idx1, idx2] for i in range(self.n-1)]
+        return [self.P_prime[i][idx1, idx2] for i in range(self.n - 1)]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass

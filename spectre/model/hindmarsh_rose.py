@@ -1,4 +1,5 @@
 """We define the class for simulating the 3D Hindmarsh-Rose model."""
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -15,8 +16,6 @@ from spectre.spectrum_general.matrix_spectrum import matrix_solution
 from spectre.spectrum_general.sim_spectrum import sim_solution
 from spectre.spectrum_general.spectrum import element_wise
 import os
-
-os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
@@ -133,7 +132,15 @@ class HR(_dyn_models):
             raise ValueError("Noise type must be either additive or multiplicative")
 
     def get_instance_variables(self):
-        return (self.eta1, self.b, self.mu, self.x_rest, self.s, self.I, self.noise_type)
+        return (
+            self.eta1,
+            self.b,
+            self.mu,
+            self.x_rest,
+            self.s,
+            self.I,
+            self.noise_type,
+        )
 
     def initialize_circuit(self):
         """
@@ -192,13 +199,26 @@ class HR(_dyn_models):
         x_e = ss[0]
 
         """The power spectral density of x"""
-        numerator = self.eta1**2 * (self.mu**2 + (1 + self.mu**2) * om ** 2 + om ** 4)
-        denominator = (self.mu ** 2) * ((x_e * (3 * x_e - 2 * self.b + 10) + self.s) ** 2)\
-                    + ((self.mu ** 2) * (((x_e * (3 * x_e - 2 * self.b) + self.s) ** 2)
-                    - 20 * x_e + 1) + (x_e ** 2) * ((3 * x_e - 2 * self.b + 10) ** 2) \
-                    - 2 * self.mu * self.s + 20 * self.mu * self.s * x_e) * om ** 2 \
-                    + (x_e * ((x_e * (3 * x_e - 2 * self.b) ** 2 - 20)) + self.mu ** 2
-                    - 2 * self.mu * self.s + 1) * om ** 4 + om ** 6
+        numerator = self.eta1**2 * (self.mu**2 + (1 + self.mu**2) * om**2 + om**4)
+        denominator = (
+            (self.mu**2) * ((x_e * (3 * x_e - 2 * self.b + 10) + self.s) ** 2)
+            + (
+                (self.mu**2)
+                * (((x_e * (3 * x_e - 2 * self.b) + self.s) ** 2) - 20 * x_e + 1)
+                + (x_e**2) * ((3 * x_e - 2 * self.b + 10) ** 2)
+                - 2 * self.mu * self.s
+                + 20 * self.mu * self.s * x_e
+            )
+            * om**2
+            + (
+                x_e * ((x_e * (3 * x_e - 2 * self.b) ** 2 - 20))
+                + self.mu**2
+                - 2 * self.mu * self.s
+                + 1
+            )
+            * om**4
+            + om**6
+        )
         return numerator / denominator
 
     @dynm_fun
@@ -218,5 +238,5 @@ class HR(_dyn_models):
         return torch.cat((dxdt, dydt, dzdt))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass

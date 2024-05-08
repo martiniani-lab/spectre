@@ -76,4 +76,3 @@ class _dyn_models(ABC):
         J = jacrev(self._dynamical_fun, argnums=1)(0, ss)
         self.J = J
         return J
-

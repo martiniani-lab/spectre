@@ -1,4 +1,5 @@
 """We define the class for simulating the Rock-Paper-Scissors-Lizard-Spock model."""
+
 import numpy as np
 import torch
 import scipy.signal
@@ -11,8 +12,6 @@ from spectre.utils.simulation_class import SDE
 from spectre.spectrum_general.matrix_spectrum import matrix_solution
 from spectre.spectrum_general.sim_spectrum import sim_solution
 from spectre.spectrum_general.spectrum import element_wise
-
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
@@ -44,7 +43,7 @@ class RPS(_dyn_models):
             ----------
             N : int is the dimensionality of the system
         """
-        self._N = N # 5 for RPSLSp
+        self._N = N  # 5 for RPSLSp
         self.dim = self.N - 1
         self._mu = mu
         self._eta = eta
@@ -73,7 +72,9 @@ class RPS(_dyn_models):
             self.dim = self.N - 1
             self.initialize_circuit()
             self.make_noise_mats()
-            self.mutation_weights = torch.ones(self.N, self.N) - self.N * torch.eye(self.N)
+            self.mutation_weights = torch.ones(self.N, self.N) - self.N * torch.eye(
+                self.N
+            )
         else:
             raise ValueError("N must be an odd positive integer")
 
@@ -111,8 +112,10 @@ class RPS(_dyn_models):
             self._noise_type = noise_type
             self.make_noise_mats()
         else:
-            raise ValueError("Noise type must be one of additive, multiplicative,"
-                             " cor_add or cor_mul")
+            raise ValueError(
+                "Noise type must be one of additive, multiplicative,"
+                " cor_add or cor_mul"
+            )
 
     def get_instance_variables(self):
         return (self.N, self.mu, self.eta)
@@ -125,9 +128,9 @@ class RPS(_dyn_models):
                 if i == j:
                     payoff[i, j] = 0
                 elif i > j:
-                    payoff[i, j] = (-1)**(i + j + 1)
+                    payoff[i, j] = (-1) ** (i + j + 1)
                 else:
-                    payoff[i, j] = (-1)**(i + j)
+                    payoff[i, j] = (-1) ** (i + j)
         return payoff
 
     def initialize_circuit(self):
@@ -194,9 +197,9 @@ class RPS(_dyn_models):
                 if i == j:
                     J[i, j] = ((-1) ** (i + 1) / n) - n * self.mu
                 elif i > j:
-                    J[i, j] = max((-1)**j, 0) * (-1)**(i + 1) * 2 / n
+                    J[i, j] = max((-1) ** j, 0) * (-1) ** (i + 1) * 2 / n
                 else:
-                    J[i, j] = max((-1)**(j-1), 0) * (-1)**(i + 1) * 2 / n
+                    J[i, j] = max((-1) ** (j - 1), 0) * (-1) ** (i + 1) * 2 / n
         self.J = J
         return J
 
@@ -207,9 +210,11 @@ class RPS(_dyn_models):
         :param x: The state of the system.
         :return: The derivative of the system at the current time-step.
         """
-        x = x.squeeze(0) # Remove the extra dimension during sde simulation
-        x_new = torch.cat((x, (1-torch.sum(x)).unsqueeze(0)), dim=0)
-        dxdt = x_new * (self.payoff @ x_new - self.phi) + self.mu * (self.mutation_weights @ x_new)
+        x = x.squeeze(0)  # Remove the extra dimension during sde simulation
+        x_new = torch.cat((x, (1 - torch.sum(x)).unsqueeze(0)), dim=0)
+        dxdt = x_new * (self.payoff @ x_new - self.phi) + self.mu * (
+            self.mutation_weights @ x_new
+        )
         return dxdt[:-1]
 
 

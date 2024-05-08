@@ -1,4 +1,5 @@
 """We define the class for simulating the Fitzhugh_Nagumo model."""
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -16,7 +17,6 @@ from spectre.spectrum_general.sim_spectrum import sim_solution
 from spectre.spectrum_general.spectrum import element_wise
 import os
 
-os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
@@ -185,19 +185,25 @@ class FHN(_dyn_models):
 
     def analytical_ss(self):
         """This function returns the analytical steady state of the circuit."""
-        delta = (1/self.beta - 1)**3 + (9/4) * (self.alpha/self.beta - self.I)**2
-        t = -(3/2)*(self.alpha/self.beta - self.I)
+        delta = (1 / self.beta - 1) ** 3 + (9 / 4) * (
+            self.alpha / self.beta - self.I
+        ) ** 2
+        t = -(3 / 2) * (self.alpha / self.beta - self.I)
         v_e = np.cbrt(t - math.sqrt(delta)) + np.cbrt(t + math.sqrt(delta))
-        w_e = (v_e + self.alpha)/self.beta
+        w_e = (v_e + self.alpha) / self.beta
         return torch.tensor([v_e, w_e])
 
     def psd_v(self, freq):
         """This function returns the power spectral density of v."""
         om = 2 * np.pi * freq
         v_e, w_e = self.analytical_ss()
-        numerator = w_e ** 2 * self.eta2 ** 2
-        denominator = (self.epsilon + (v_e ** 2 - 1) * self.beta * self.epsilon) ** 2 + \
-                      ((v_e ** 2 - 1) ** 2 - 2 * self.epsilon + self.beta ** 2 * self.epsilon ** 2) * om ** 2 + om ** 4
+        numerator = w_e**2 * self.eta2**2
+        denominator = (
+            (self.epsilon + (v_e**2 - 1) * self.beta * self.epsilon) ** 2
+            + ((v_e**2 - 1) ** 2 - 2 * self.epsilon + self.beta**2 * self.epsilon**2)
+            * om**2
+            + om**4
+        )
         return numerator / denominator
 
     @dynm_fun
@@ -210,10 +216,10 @@ class FHN(_dyn_models):
         x = x.squeeze(0)  # Remove the extra dimension during sde simulation
         v = x[0:1]
         w = x[1:2]
-        dvdt = v - v ** 3 / 3 - w + self.I
+        dvdt = v - v**3 / 3 - w + self.I
         dwdt = self.epsilon * (v + self.alpha - self.beta * w)
         return torch.cat((dvdt, dwdt))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass
