@@ -2,27 +2,13 @@
 
 import numpy as np
 import torch
-import torch.nn as nn
-from torch.func import jacrev
 from ._dyn_models import _dyn_models
-from spectre.utils.util_funs import dynm_fun
-import math
-import scipy.signal
-from torchdiffeq import odeint
-from torchsde import sdeint
-import matplotlib.pyplot as plt
-from spectre.utils.simulation_class import SDE
-from spectre.spectrum_general.matrix_spectrum import matrix_solution
-from spectre.spectrum_general.sim_spectrum import sim_solution
-from spectre.spectrum_general.spectrum import element_wise
-import os
-
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device("cpu")
+from ..utils.util_funs import dynm_fun
+from ..spectrum_general.sim_spectrum import sim_solution
 
 
 class HR(_dyn_models):
-    def __init__(self, I=3.5, eta1=0.001):
+    def __init__(self, I=3.5, eta1=0.001, method="euler", run_jacobian=True):
         super(HR, self).__init__()
         """
         This function initializes the various parameters of the Hindmarsh-Rose model. 
@@ -45,10 +31,11 @@ class HR(_dyn_models):
 
         """Type of noise"""
         self._noise_type = "additive"
-        # self._noise_type = "multiplicative"
 
         """Initialize the circuit"""
-        self.initialize_circuit()
+        self.method = method
+        self.run_jacobian = run_jacobian
+        self.initialize_circuit(method=method, run_jacobian=run_jacobian)
 
     @property
     def eta1(self):
@@ -70,7 +57,7 @@ class HR(_dyn_models):
     def b(self, b):
         if b > 0:
             self._b = b
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("b parameter be a positive float")
 
@@ -82,7 +69,7 @@ class HR(_dyn_models):
     def mu(self, mu):
         if mu > 0:
             self._mu = mu
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Relative time constant must be a positive float")
 
@@ -93,7 +80,7 @@ class HR(_dyn_models):
     @x_rest.setter
     def x_rest(self, x_rest):
         self._x_rest = x_rest
-        self.initialize_circuit()
+        self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
 
     @property
     def s(self):
@@ -103,7 +90,7 @@ class HR(_dyn_models):
     def s(self, s):
         if s > 0:
             self._s = s
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("s parameter must be positive")
 
@@ -115,7 +102,7 @@ class HR(_dyn_models):
     def I(self, I):
         if I >= 0:
             self._I = I
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("External stimulus must be positive")
 
@@ -142,28 +129,21 @@ class HR(_dyn_models):
             self.noise_type,
         )
 
-    def initialize_circuit(self):
+    def initialize_circuit(self, method="euler", run_jacobian=True):
         """
         This function makes the jacobian and the noise matrix of the circuit.
         :return: None
         """
         """Make the jacobian"""
-        time = 1000
-        points = 10000
-        _ = self.jacobian_autograd(time=time, points=points)
+        if run_jacobian:
+            tau = 1.0
+            time = tau * 500
+            dt = 0.05 * tau
+            points = int(time / dt)
+            _ = self.jacobian_autograd(time=time, points=points, method=method)
 
         """Make noise matrices"""
         self.make_noise_mats()
-        return
-
-    def make_noise_mats(self):
-        """
-        This function creates the noise matrices for the SDE simulation.
-        :return: None
-        """
-        self.L = self.make_L(time=1000, points=10000)
-        self.D = self.make_D()
-        self.S = torch.sqrt(self.D)
         return
 
     def make_Ly(self, t, x):
@@ -193,8 +173,10 @@ class HR(_dyn_models):
 
         """First we find the steady state"""
         sim_obj = sim_solution(self)
-        time = 1000
-        points = 10000
+        tau = 1.0
+        time = tau * 500
+        dt = 0.05 * tau
+        points = int(time / dt)
         ss = sim_obj.steady_state(time=time, points=points)
         x_e = ss[0]
 

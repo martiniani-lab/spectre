@@ -1,27 +1,14 @@
 """We define the class for simulating the Wilson-Cowan 4D model."""
 
-import numpy as np
 import torch
-import torch.nn as nn
-from torch.func import jacrev
 from ._dyn_models import _dyn_models
 from spectre.utils.util_funs import dynm_fun
-import scipy.signal
-from torchdiffeq import odeint
-from torchsde import sdeint
-import matplotlib.pyplot as plt
-from spectre.utils.simulation_class import SDE
-from spectre.spectrum_general.matrix_spectrum import matrix_solution
-from spectre.spectrum_general.sim_spectrum import sim_solution
-from spectre.spectrum_general.spectrum import element_wise
-import os
-
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device("cpu")
 
 
 class WC4D(_dyn_models):
-    def __init__(self, c=0.5, eta1=0.001, eta2=0.002):
+    def __init__(
+        self, c=0.5, eta1=0.001, eta2=0.002, method="euler", run_jacobian=True
+    ):
         super(WC4D, self).__init__()
         """
         This function initializes the various parameters of the 4D Wilson-Cowan model. 
@@ -66,7 +53,9 @@ class WC4D(_dyn_models):
         self.sI = None
 
         """Initialize the circuit"""
-        self.initialize_circuit()
+        self.method = method
+        self.run_jacobian = run_jacobian
+        self.initialize_circuit(method=method, run_jacobian=run_jacobian)
 
     @property
     def eta1(self):
@@ -100,7 +89,7 @@ class WC4D(_dyn_models):
     def tauE(self, tauE):
         if tauE > 0:
             self._tauE = tauE
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Time constant must be a positive float")
 
@@ -112,7 +101,7 @@ class WC4D(_dyn_models):
     def tauI(self, tauI):
         if tauI > 0:
             self._tauI = tauI
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Time constant must be a positive float")
 
@@ -124,7 +113,7 @@ class WC4D(_dyn_models):
     def tauSE(self, tauSE):
         if tauSE > 0:
             self._tauSE = tauSE
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Time constant must be a positive float")
 
@@ -136,7 +125,7 @@ class WC4D(_dyn_models):
     def tauSI(self, tauSI):
         if tauSI > 0:
             self._tauSI = tauSI
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Time constant must be a positive float")
 
@@ -148,7 +137,7 @@ class WC4D(_dyn_models):
     def W_EE(self, W_EE):
         if W_EE > 0:
             self._W_EE = W_EE
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Weight must be a positive float")
 
@@ -160,7 +149,7 @@ class WC4D(_dyn_models):
     def W_IE(self, W_IE):
         if W_IE > 0:
             self._W_IE = W_IE
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Weight must be a positive float")
 
@@ -172,7 +161,7 @@ class WC4D(_dyn_models):
     def W_EI(self, W_EI):
         if W_EI > 0:
             self._W_EI = W_EI
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Weight must be a positive float")
 
@@ -184,7 +173,7 @@ class WC4D(_dyn_models):
     def W_II(self, W_II):
         if W_II > 0:
             self._W_II = W_II
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Weight must be a positive float")
 
@@ -196,7 +185,7 @@ class WC4D(_dyn_models):
     def gammaE(self, gammaE):
         if gammaE > 0:
             self._gammaE = gammaE
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Gamma must be a positive float")
 
@@ -208,7 +197,7 @@ class WC4D(_dyn_models):
     def gammaI(self, gammaI):
         if gammaI > 0:
             self._gammaI = gammaI
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Gamma must be a positive float")
 
@@ -220,7 +209,7 @@ class WC4D(_dyn_models):
     def thetaE(self, thetaE):
         if thetaE > 0:
             self._thetaE = thetaE
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Theta must be a positive float")
 
@@ -232,7 +221,7 @@ class WC4D(_dyn_models):
     def thetaI(self, thetaI):
         if thetaI > 0:
             self._thetaI = thetaI
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Theta must be a positive float")
 
@@ -244,7 +233,7 @@ class WC4D(_dyn_models):
     def kappaE(self, kappaE):
         if kappaE > 0:
             self._kappaE = kappaE
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Kappa must be a positive float")
 
@@ -256,7 +245,7 @@ class WC4D(_dyn_models):
     def kappaI(self, kappaI):
         if kappaI > 0:
             self._kappaI = kappaI
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Kappa must be a positive float")
 
@@ -268,7 +257,7 @@ class WC4D(_dyn_models):
     def c(self, c):
         if c > 0:
             self._c = c
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("contrast must be a positive float")
 
@@ -311,7 +300,7 @@ class WC4D(_dyn_models):
         """
         return 1 / (1 + torch.exp(-x))
 
-    def initialize_circuit(self):
+    def initialize_circuit(self, method="euler", run_jacobian=True):
         """
         This function makes the input, the jacobian and the noise matrix of the circuit.
         :return: None
@@ -320,9 +309,13 @@ class WC4D(_dyn_models):
         self.make_input()
 
         """Make the jacobian"""
-        time = 10
-        points = 100000
-        _ = self.jacobian_autograd(time=time, points=points)
+        if run_jacobian:
+            tau_min = min(self.tauE, self.tauI, self.tauSE, self.tauSI)
+            tau_max = max(self.tauE, self.tauI, self.tauSE, self.tauSI)
+            time = tau_max * 200
+            dt = 0.05 * tau_min
+            points = int(time / dt)
+            _ = self.jacobian_autograd(time=time, points=points, method=method)
 
         """Make noise matrices"""
         self.make_noise_mats()

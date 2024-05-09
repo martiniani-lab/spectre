@@ -1,24 +1,14 @@
 """We define the class for simulating the Rock-Paper-Scissors-Lizard-Spock model."""
 
-import numpy as np
 import torch
-import scipy.signal
-from torchsde import sdeint
-from torch.func import jacrev
-import os
 from ._dyn_models import _dyn_models
 from spectre.utils.util_funs import dynm_fun
-from spectre.utils.simulation_class import SDE
-from spectre.spectrum_general.matrix_spectrum import matrix_solution
-from spectre.spectrum_general.sim_spectrum import sim_solution
-from spectre.spectrum_general.spectrum import element_wise
-
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device("cpu")
 
 
 class RPS(_dyn_models):
-    def __init__(self, N, mu=0, eta=0.01, noise_type="multiplicative"):
+    def __init__(
+        self, N, mu=0, eta=0.01, noise_type="multiplicative", run_jacobian=True
+    ):
         super(RPS, self).__init__()
         """
         This class implements a rock paper scissors type system with mutations,
@@ -58,7 +48,8 @@ class RPS(_dyn_models):
         self._noise_type = noise_type
 
         """Initialize the circuit"""
-        self.initialize_circuit()
+        self.run_jacobian = run_jacobian
+        self.initialize_circuit(run_jacobian=run_jacobian)
         self.make_noise_mats()
 
     @property
@@ -70,7 +61,7 @@ class RPS(_dyn_models):
         if N > 0 and N % 2 == 1:
             self._N = N
             self.dim = self.N - 1
-            self.initialize_circuit()
+            self.initialize_circuit(run_jacobian=self.run_jacobian)
             self.make_noise_mats()
             self.mutation_weights = torch.ones(self.N, self.N) - self.N * torch.eye(
                 self.N
@@ -86,7 +77,7 @@ class RPS(_dyn_models):
     def mu(self, mu):
         if 0 <= mu <= 1:
             self._mu = mu
-            self.initialize_circuit()
+            self.initialize_circuit(run_jacobian=self.run_jacobian)
         else:
             raise ValueError("mu should be between 0 and 1")
 
@@ -133,7 +124,7 @@ class RPS(_dyn_models):
                     payoff[i, j] = (-1) ** (i + j)
         return payoff
 
-    def initialize_circuit(self):
+    def initialize_circuit(self, run_jacobian=True):
         """
         This function makes the jacobian and the noise matrix of the circuit.
         :return: None
@@ -142,16 +133,9 @@ class RPS(_dyn_models):
 
         """Make the jacobian"""
         ss = self.steady_state()
-        _ = self.jacobian_autograd(ss)
+        if run_jacobian:
+            _ = self.jacobian_autograd(ss=ss)
         return None
-
-    def jacobian_autograd(self, ss):
-        """
-        Calculates the Jacobian of the dynamical system using torch autograd.
-        """
-        J = jacrev(self._dynamical_fun, argnums=1)(0, ss)
-        self.J = J
-        return J
 
     def make_noise_mats(self):
         """

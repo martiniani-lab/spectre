@@ -1,28 +1,15 @@
 """We define the class for simulating the Stabilized-supralinear-network (SSN) model."""
 
-import numpy as np
 import torch
 import torch.nn.functional as F
-import torch.nn as nn
-from torch.func import jacrev
 from ._dyn_models import _dyn_models
 from spectre.utils.util_funs import dynm_fun
-import scipy.signal
-from torchdiffeq import odeint
-from torchsde import sdeint
-import matplotlib.pyplot as plt
-from spectre.utils.simulation_class import SDE
-from spectre.spectrum_general.matrix_spectrum import matrix_solution
-from spectre.spectrum_general.sim_spectrum import sim_solution
-from spectre.spectrum_general.spectrum import element_wise
-import os
-
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device("cpu")
 
 
 class SSN(_dyn_models):
-    def __init__(self, N=11, length=9, c=50, eta=0.01):
+    def __init__(
+        self, N=11, length=9, c=50, eta=0.01, method="euler", run_jacobian=True
+    ):
         super(SSN, self).__init__()
         """
         This function initializes the various parameters of the SSN model. See 
@@ -69,7 +56,9 @@ class SSN(_dyn_models):
         self._noise_type = "additive"
 
         """Initialize the circuit"""
-        self.initialize_circuit()
+        self.method = method
+        self.run_jacobian = run_jacobian
+        self.initialize_circuit(method=method, run_jacobian=run_jacobian)
         self.make_noise_mats()
 
     @property
@@ -81,7 +70,7 @@ class SSN(_dyn_models):
         if N > 0:
             self._N = N
             self.dim = self.calculate_dim()
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
             self.make_noise_mats()
         else:
             raise ValueError("N must be a positive integer")
@@ -106,7 +95,7 @@ class SSN(_dyn_models):
     def tauE(self, tauE):
         if tauE > 0:
             self._tauE = tauE
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
             self.make_noise_mats()
         else:
             raise ValueError("Time constant must be a positive float")
@@ -119,7 +108,7 @@ class SSN(_dyn_models):
     def tauI(self, tauI):
         if tauI > 0:
             self._tauI = tauI
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
             self.make_noise_mats()
         else:
             raise ValueError("Time constant must be a positive float")
@@ -132,7 +121,7 @@ class SSN(_dyn_models):
     def delta_x(self, delta_x):
         if delta_x > 0:
             self._delta_x = delta_x
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("delta_x must be a positive float")
 
@@ -143,7 +132,7 @@ class SSN(_dyn_models):
     @J_EE.setter
     def J_EE(self, J_EE):
         self._J_EE = J_EE
-        self.initialize_circuit()
+        self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
 
     @property
     def J_IE(self):
@@ -152,7 +141,7 @@ class SSN(_dyn_models):
     @J_IE.setter
     def J_IE(self, J_IE):
         self._J_IE = J_IE
-        self.initialize_circuit()
+        self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
 
     @property
     def J_EI(self):
@@ -161,7 +150,7 @@ class SSN(_dyn_models):
     @J_EI.setter
     def J_EI(self, J_EI):
         self._J_EI = J_EI
-        self.initialize_circuit()
+        self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
 
     @property
     def J_II(self):
@@ -170,7 +159,7 @@ class SSN(_dyn_models):
     @J_II.setter
     def J_II(self, J_II):
         self._J_II = J_II
-        self.initialize_circuit()
+        self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
 
     @property
     def sigma_EE(self):
@@ -180,7 +169,7 @@ class SSN(_dyn_models):
     def sigma_EE(self, sigma_EE):
         if sigma_EE > 0:
             self._sigma_EE = sigma_EE
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Sigma must be a positive float")
 
@@ -192,7 +181,7 @@ class SSN(_dyn_models):
     def sigma_IE(self, sigma_IE):
         if sigma_IE > 0:
             self._sigma_IE = sigma_IE
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Sigma must be a positive float")
 
@@ -204,7 +193,7 @@ class SSN(_dyn_models):
     def l(self, l):
         if l > 0:
             self._l = l
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Length of stimulus must be a positive float")
 
@@ -216,7 +205,7 @@ class SSN(_dyn_models):
     def c(self, c):
         if c > 0:
             self._c = c
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Contrast of stimulus must be a positive float")
 
@@ -228,7 +217,7 @@ class SSN(_dyn_models):
     def k(self, k):
         if k > 0:
             self._k = k
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError(
                 "Supralinear activation parameter must be a positive float"
@@ -242,7 +231,7 @@ class SSN(_dyn_models):
     def n(self, n):
         if n > 1:
             self._n = n
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Sublinear activation must be larger than 1")
 
@@ -312,7 +301,7 @@ class SSN(_dyn_models):
         a stable dynamical system."""
         return torch.all(torch.real(torch.linalg.eigvals(mat)) < 0)
 
-    def initialize_circuit(self):
+    def initialize_circuit(self, method="euler", run_jacobian=True):
         """
         This function makes the input stimulus, the weight matrices and the jacobian
         corresponding to the system.
@@ -334,9 +323,13 @@ class SSN(_dyn_models):
         )
 
         """Make the jacobian"""
-        time = 1
-        points = 10000
-        _ = self.jacobian_autograd(time=time, points=points)
+        if run_jacobian:
+            tau_min = min(self.tauE, self.tauI)
+            tau_max = max(self.tauE, self.tauI)
+            time = tau_max * 200
+            dt = 0.05 * tau_min
+            points = int(time / dt)
+            _ = self.jacobian_autograd(time=time, points=points, method=method)
         return
 
     def make_input(self):

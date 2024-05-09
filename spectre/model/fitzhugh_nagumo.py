@@ -2,28 +2,13 @@
 
 import numpy as np
 import torch
-import torch.nn as nn
-from torch.func import jacrev
 import math
 from ._dyn_models import _dyn_models
-from spectre.utils.util_funs import dynm_fun
-import scipy.signal
-from torchdiffeq import odeint
-from torchsde import sdeint
-import matplotlib.pyplot as plt
-from spectre.utils.simulation_class import SDE
-from spectre.spectrum_general.matrix_spectrum import matrix_solution
-from spectre.spectrum_general.sim_spectrum import sim_solution
-from spectre.spectrum_general.spectrum import element_wise
-import os
-
-
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device("cpu")
+from ..utils.util_funs import dynm_fun
 
 
 class FHN(_dyn_models):
-    def __init__(self, I=0.265, eta1=0, eta2=0.001):
+    def __init__(self, I=0.265, eta1=0, eta2=0.001, method="euler", run_jacobian=True):
         super(FHN, self).__init__()
         """
         This function initializes the various parameters of the Fitzhugh-Nagumo model. 
@@ -47,11 +32,12 @@ class FHN(_dyn_models):
         self._I = I
 
         """Type of noise"""
-        # self._noise_type = "additive"
         self._noise_type = "multiplicative"
 
         """Initialize the circuit"""
-        self.initialize_circuit()
+        self.method = method
+        self.run_jacobian = run_jacobian
+        self.initialize_circuit(method=method, run_jacobian=run_jacobian)
 
     @property
     def eta1(self):
@@ -85,7 +71,7 @@ class FHN(_dyn_models):
     def epsilon(self, epsilon):
         if epsilon > 0:
             self._epsilon = epsilon
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Relative time constant must be a positive float")
 
@@ -97,7 +83,7 @@ class FHN(_dyn_models):
     def alpha(self, alpha):
         if alpha > 0:
             self._alpha = alpha
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Alpha must be a positive float")
 
@@ -109,7 +95,7 @@ class FHN(_dyn_models):
     def beta(self, beta):
         if beta > 0:
             self._beta = beta
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("Beta must be a positive float")
 
@@ -121,7 +107,7 @@ class FHN(_dyn_models):
     def I(self, I):
         if I >= 0:
             self._I = I
-            self.initialize_circuit()
+            self.initialize_circuit(method=self.method, run_jacobian=self.run_jacobian)
         else:
             raise ValueError("External stimulus must be a positive float")
 
@@ -140,15 +126,18 @@ class FHN(_dyn_models):
     def get_instance_variables(self):
         return (self.eta1, self.eta2, self.epsilon, self.alpha, self.beta, self.I)
 
-    def initialize_circuit(self):
+    def initialize_circuit(self, method="euler", run_jacobian=True):
         """
         This function makes the jacobian and the noise matrix of the circuit.
         :return: None
         """
         """Make the jacobian"""
-        time = 1000
-        points = 10000
-        _ = self.jacobian_autograd(time=time, points=points)
+        if run_jacobian:
+            tau = 1.0
+            time = tau * 200
+            dt = 0.05 * tau
+            points = int(time / dt)
+            _ = self.jacobian_autograd(time=time, points=points, method=method)
 
         """Make noise matrices"""
         self.make_noise_mats()
@@ -170,7 +159,7 @@ class FHN(_dyn_models):
         This function creates the noise matrices for the SDE simulation.
         :return: None
         """
-        self.L = self.make_L(time=1000, points=10000)
+        self.L = self.make_L(time=None, points=None, method=self.method)
         self.D = self.make_D()
         self.S = torch.sqrt(self.D)
         return
