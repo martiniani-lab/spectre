@@ -4,5 +4,4 @@ spectre/__pycache__
 spectre/spectrum_general/__pycache__
 spectre/model/__pycache__
 spectre/utils/__pycache__
-figures
 examples/sympolic_psd_test.ipynb
