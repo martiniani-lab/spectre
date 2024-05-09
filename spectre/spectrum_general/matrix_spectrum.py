@@ -34,7 +34,7 @@ class matrix_solution:
         self.is_spd = is_spd
         self.is_spd_diagonal = is_spd_diagonal
 
-        self.spectral_matrix = {}
+        self.spectral_mat = {}
 
         """Inverse of the noise covariance matrix"""
         if self.is_spd_diagonal:
@@ -115,7 +115,7 @@ class matrix_solution:
                         @ self.noise_mat.to(Left_inv.dtype)
                         @ torch.conj(Left_inv).T
                     )
-        self.spectral_matrix[tuple(freq.tolist())] = S
+        self.spectral_mat[tuple(freq.tolist())] = S
         return S
 
     def auto_spectrum(self, i=None, freq=None, J=None):
@@ -134,8 +134,8 @@ class matrix_solution:
         )
         J = self.J if J is None else J
 
-        if tuple(freq.tolist()) in self.spectral_matrix:
-            S = self.spectral_matrix[tuple(freq.tolist())]
+        if tuple(freq.tolist()) in self.spectral_mat:
+            S = self.spectral_mat[tuple(freq.tolist())]
         else:
             S = self.spectral_matrix(freq, J)
 
@@ -164,8 +164,8 @@ class matrix_solution:
         )
         J = self.J if J is None else J
 
-        if tuple(freq.tolist()) in self.spectral_matrix:
-            S = self.spectral_matrix[tuple(freq.tolist())]
+        if tuple(freq.tolist()) in self.spectral_mat:
+            S = self.spectral_mat[tuple(freq.tolist())]
         else:
             S = self.spectral_matrix(freq, J)
 
@@ -193,8 +193,8 @@ class matrix_solution:
             else freq
         )
 
-        if tuple(freq.tolist()) in self.spectral_matrix:
-            S = self.spectral_matrix[tuple(freq.tolist())]
+        if tuple(freq.tolist()) in self.spectral_mat:
+            S = self.spectral_mat[tuple(freq.tolist())]
         else:
             S = self.spectral_matrix(freq, J)
 
