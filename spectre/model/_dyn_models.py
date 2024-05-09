@@ -2,11 +2,11 @@ from abc import ABC, abstractmethod
 import torch
 from scipy import linalg
 from torch.func import jacrev
-from spectre.spectrum_general.sim_spectrum import sim_solution
+from ..spectrum_general.sim_spectrum import sim_solution
 
 
 class _dyn_models(ABC):
-    def __init__(self):
+    def __init__(self, device=None):
         """Dimensionality of the system"""
         self.dim = None
 
@@ -23,6 +23,12 @@ class _dyn_models(ABC):
 
         """Dictionary to store the simulation"""
         self.simulation = {}
+
+        """Device to run the simulation on"""
+        self.device = device if device is not None else torch.device("cpu")
+
+        """Steady-state solution"""
+        self.ss = None
 
     @abstractmethod
     def get_instance_variables(self):
@@ -46,17 +52,18 @@ class _dyn_models(ABC):
     def make_Ly(self, t, x):
         pass
 
-    def make_L(self, time=1, points=10000):
+    def make_L(self, time=1, points=10000, method="euler"):
         """
         Calculates the steady-state noise matrix.
         :param time: Time to simulate the circuit.
         :param points: How many points to discretize the simulation.
         :return: The steady-state noise matrix.
         """
-        ss = 0
-        if not self._noise_type == "additive":
-            sim_obj = sim_solution(self)
-            ss = sim_obj.steady_state(time=time, points=points)
+        ss = self.ss
+        if self.ss is None:
+            if not self._noise_type == "additive":
+                sim_obj = sim_solution(self)
+                ss = sim_obj.steady_state(time=time, points=points, method=method)
         return self.make_Ly(0, ss)
 
     @abstractmethod
@@ -67,12 +74,14 @@ class _dyn_models(ABC):
     def _dynamical_fun(self, t, x):
         pass
 
-    def jacobian_autograd(self, time=1, points=10000):
+    def jacobian_autograd(self, time=1, points=10000, method="euler", ss=None):
         """
         Calculates the Jacobian of the dynamical system using torch autograd.
         """
-        sim_obj = sim_solution(self)
-        ss = sim_obj.steady_state(time=time, points=points)
-        J = jacrev(self._dynamical_fun, argnums=1)(0, ss)
+        if ss is None:
+            sim_obj = sim_solution(self)
+            ss = sim_obj.steady_state(time=time, points=points, method=method)
+        J = jacrev(self._dynamical_fun, argnums=1)(torch.tensor([0]), ss)
         self.J = J
-        return J
+        self.ss = ss
+        return J, ss
