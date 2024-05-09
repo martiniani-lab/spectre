@@ -10,7 +10,7 @@ import scipy.signal
 
 
 class sim_solution:
-    def __init__(self, obj=None):
+    def __init__(self, obj=None, sde_sim_method="euler"):
         """
         This function initializes the nonlinear dynamical function and noise matrices
         required for SDE simulation.
@@ -19,6 +19,7 @@ class sim_solution:
         """Object containing dynamical function to be used for simulation"""
         self.obj = obj
         self.noise_type = obj.noise_type
+        self.sde_sim_method = sde_sim_method
 
     def steady_state(
         self,
@@ -91,7 +92,7 @@ class sim_solution:
             else:
                 raise Exception("Noise type not recognized")
             with torch.no_grad():
-                sol = sdeint(sde, x0, t, dt=dt, method="euler")
+                sol = sdeint(sde, x0, t, dt=dt, method=self.sde_sim_method)
             solution = sol.squeeze(1)
             if save:
                 self.obj.simulation[key] = solution
@@ -119,7 +120,7 @@ class sim_solution:
         final_sol = torch.zeros(n_trials, self.obj.dim)
         for i in range(n_trials):
             with torch.no_grad():
-                sol_sde = sdeint(sde, x0, t, dt=dt, method="euler")
+                sol_sde = sdeint(sde, x0, t, dt=dt, method=self.sde_sim_method)
             sol_sde = sol_sde - torch.mean(sol_sde, dim=0)
             sol_sde = sol_sde.squeeze(1)
             if n_trials == 1:
