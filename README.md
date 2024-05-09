@@ -1,7 +1,9 @@
 # spectre
 
-
 This repositry contains scripts used to generate figures in the paper titled: "Explicit rational function solutions for the power spectral density of stochastic linear time-invariant systems."
+
+![](./figures/readme.png)
+
 
 The folder 'spectrum_general' contains classes to calculate the spectrum of an LTI SDE with a given Jacobian (J) and noise matrices (L and S), using the matrix, recursive, simulation and element-wise solution.
 
@@ -19,10 +21,6 @@ The folder 'plotting_scripts' contains jupyter notebooks used to generate the pl
 
 Follow these steps to install Spectre:
 
-### Prerequisites
-- List any required software or dependencies here.
-
-### Installation Steps
 1. Clone the repository:
     ```bash
     git clone https://github.com/martiniani-lab/spectre.git
@@ -40,7 +38,15 @@ Follow these steps to install Spectre:
 import spectre
 ```
 
-## Citation
+## Reference and Citation
+The algorithms and results for various models described in the preprint:
+
+> *Element-wise and Recursive Solutions for the Power Spectral Density of Biological Stochastic Dynamical Systems at Fixed Points*
+> 
+> Shivang Rawat and Stefano Martiniani
+>
+> https://arxiv.org/abs/2305.19890
+
 ```bibtex
 @article{rawat2023element,
   title={Element-wise and Recursive Solutions for the Power Spectral Density of Biological Stochastic Dynamical Systems at Fixed Points},
