@@ -148,7 +148,7 @@ class recursive_solution:
         # Denominator
         q_all = self.q_all_coeffs()
         powers = 2 * torch.arange(n + 1)
-        denm = torch.zeros(om.shape[0])
+        denm = torch.zeros(om.shape[0], dtype=torch.float64)
         for j in range(om.shape[0]):
             for m in range(n + 1):
                 denm[j] += float(q_all[m] * om[j] ** powers[m])
@@ -156,7 +156,7 @@ class recursive_solution:
         # Numerator
         p_all = self.p_auto_all_coeffs(idx)
         powers = 2 * torch.arange(n)
-        num = torch.zeros(om.shape[0])
+        num = torch.zeros(om.shape[0], dtype=torch.float64)
         for j in range(om.shape[0]):
             for m in range(n):
                 num[j] += float(p_all[m] * om[j] ** powers[m])
@@ -189,7 +189,7 @@ class recursive_solution:
         # Denominator
         q_all = self.q_all_coeffs()
         powers = 2 * torch.arange(n + 1)
-        denm = torch.zeros(om.shape[0])
+        denm = torch.zeros(om.shape[0], dtype=torch.float64)
         for j in range(om.shape[0]):
             for m in range(n + 1):
                 denm[j] += float(q_all[m] * om[j] ** powers[m])
@@ -197,7 +197,7 @@ class recursive_solution:
         # Numerator (real part)
         p_r_all = self.p_cross_r_all_coeffs(idx1, idx2)
         powers = 2 * torch.arange(n)
-        num_r = torch.zeros(om.shape[0])
+        num_r = torch.zeros(om.shape[0], dtype=torch.float64)
         for k in range(om.shape[0]):
             for m in range(n):
                 num_r[k] += float(p_r_all[m] * om[k] ** powers[m])
@@ -205,7 +205,7 @@ class recursive_solution:
         # Numerator (Imaginary part)
         p_i_all = self.p_cross_i_all_coeffs(idx1, idx2)
         powers = 2 * torch.arange(n - 1) + 1
-        num_i = torch.zeros(om.shape[0])
+        num_i = torch.zeros(om.shape[0], dtype=torch.float64)
         for k in range(om.shape[0]):
             for m in range(n - 1):
                 num_i[k] += float(p_i_all[m] * om[k] ** powers[m])
@@ -240,14 +240,14 @@ class recursive_solution:
         # Cross-spectrum (numerator of coherence)
         p_r_all = self.p_cross_r_all_coeffs(idx1, idx2)
         powers = 2 * torch.arange(n)
-        num_r = torch.zeros(om.shape[0])
+        num_r = torch.zeros(om.shape[0], dtype=torch.float64)
         for k in range(om.shape[0]):
             for m in range(n):
                 num_r[k] += float(p_r_all[m] * om[k] ** powers[m])
 
         p_i_all = self.p_cross_i_all_coeffs(idx1, idx2)
         powers = 2 * torch.arange(n - 1) + 1
-        num_i = torch.zeros(om.shape[0])
+        num_i = torch.zeros(om.shape[0], dtype=torch.float64)
         for k in range(om.shape[0]):
             for m in range(n - 1):
                 num_i[k] += float(p_i_all[m] * om[k] ** powers[m])
@@ -257,14 +257,14 @@ class recursive_solution:
         # Auto-spectrum (denominator of coherence)
         p_all1 = self.p_auto_all_coeffs(idx1)
         powers = 2 * torch.arange(n)
-        denm1 = torch.zeros(om.shape[0])
+        denm1 = torch.zeros(om.shape[0], dtype=torch.float64)
         for j in range(om.shape[0]):
             for m in range(n):
                 denm1[j] += float(p_all1[m] * om[j] ** powers[m])
 
         p_all2 = self.p_auto_all_coeffs(idx2)
         powers = 2 * torch.arange(n)
-        denm2 = torch.zeros(om.shape[0])
+        denm2 = torch.zeros(om.shape[0], dtype=torch.float64)
         for j in range(om.shape[0]):
             for m in range(n):
                 denm2[j] += float(p_all2[m] * om[j] ** powers[m])
