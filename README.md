@@ -77,7 +77,9 @@ Example code to calculate the power spectral density of a variable,
 
     # Simulation solution
     sim_model = sim_solution(model, sde_sim_method="euler")
-    psd_sim, f = sim_model.simulation_spectrum(i=idx, ndivs=10, n_points=int(1e6), time=int(5e4), dt=0.04)
+    psd_sim, f = sim_model.simulation_spectrum(
+        i=idx, ndivs=10, n_points=int(1e6), time=int(5e4), dt=0.04
+    )
 ```
 
 To calculate the cross-spectrum between any two variables,
@@ -96,7 +98,9 @@ To calculate the cross-spectrum between any two variables,
     cpsd_matrix, _ = mat_model.cross_spectrum(i, j, freq)
 
     # Simulation solution
-    cpsd_sim, f = sim_model.simulation_spectrum(i=i, j=j, ndivs=10, n_points=int(1e6), time=int(5e4), dt=0.04)
+    cpsd_sim, f = sim_model.simulation_spectrum(
+        i=i, j=j, ndivs=10, n_points=int(1e6), time=int(5e4), dt=0.04
+    )
 ```
 
 To calculate the coherence between any two variables,
@@ -115,7 +119,9 @@ To calculate the coherence between any two variables,
     coh_matrix, _ = mat_model.coherence(i, j, freq)
 
     # Simulation solution
-    coh_sim, f = sim_model.simulation_coherence(i=i, j=j, ndivs=10, n_points=int(1e6), time=int(5e4), dt=0.04)
+    coh_sim, f = sim_model.simulation_coherence(
+        i=i, j=j, ndivs=10, n_points=int(1e6), time=int(5e4), dt=0.04
+    )
 ```
 
 ### Coefficients of the rational function
