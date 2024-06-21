@@ -10,19 +10,18 @@ from functools import lru_cache
 
 
 class recursive_solution_g:
-    def __init__(self, G=None, L=None, S=None):
+    def __init__(self, G=None, L=None, Y=None):
         """
         In this constructor function, we define and assign the different matrices "O"
         and list "l", upon which our spectrum solution depends.
         :param J: the Jacobian matrix
         :param L: the matrix containing noise coefficients
-        :param S: the matrix containing the variance of the noise terms added
+        :param S: the rate matrix
         """
         self.G = sp.Matrix([[sp.Rational(str(j)) for j in i] for i in G.tolist()])
         self.L = sp.Matrix([[sp.Rational(str(j)) for j in i] for i in L.tolist()])
-        self.S = sp.Matrix([[sp.Rational(str(j)) for j in i] for i in S.tolist()])
-        self.D = self.S**2
-        self.Y = self.L * self.D * self.L.T
+        self.S = sp.Matrix([[sp.Rational(str(j)) for j in i] for i in Y.tolist()])
+        self.Y = self.L * self.S * self.L.T
         self.Y_inv = self.Y.inv()
         self.n = G.shape[0]
 
