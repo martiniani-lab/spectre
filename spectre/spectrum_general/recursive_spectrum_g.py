@@ -1,5 +1,3 @@
-"""This function calculates the power spectral density using the recursive solution"""
-
 import numpy as np
 import torch
 import sympy as sp
