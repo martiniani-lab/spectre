@@ -44,30 +44,30 @@ class recursive_solution:
         self.P[self.n - 1] = self.q[self.n] * self.C
         self.Q[self.n - 1] = sp.eye(self.n)
         for alpha in range(self.n - 1, 0, -1):
-            self.P_prime[alpha - 1] = recursive_solution.P_prime(
+            self.P_prime[alpha - 1] = recursive_solution.P_prime_func(
                 self.J, self.P[alpha], self.P_prime[alpha]
             )
-            self.Q_prime[alpha - 1] = recursive_solution.P_prime(
+            self.Q_prime[alpha - 1] = recursive_solution.P_prime_func(
                 self.J, self.Q[alpha], self.Q_prime[alpha]
             )
-            self.q[alpha] = recursive_solution.q(
+            self.q[alpha] = recursive_solution.q_func(
                 self.J, self.Q_prime[alpha - 1], self.Q[alpha], self.n, alpha
             )
-            self.P[alpha - 1] = recursive_solution.P(
+            self.P[alpha - 1] = recursive_solution.P_func(
                 self.q[alpha], self.C, self.P_prime[alpha - 1], self.J, self.P[alpha]
             )
-            self.Q[alpha - 1] = recursive_solution.P(
+            self.Q[alpha - 1] = recursive_solution.P_func(
                 self.q[alpha],
                 sp.eye(self.n),
                 self.Q_prime[alpha - 1],
                 self.J,
                 self.Q[alpha],
             )
-        self.q[0] = recursive_solution.q(self.J, self.Q_prime[-1], self.Q[0], self.n, 0)
+        self.q[0] = recursive_solution.q_func(self.J, self.Q_prime[-1], self.Q[0], self.n, 0)
         return None
 
     @staticmethod
-    def P(q, C, P_prime, J, P):
+    def P_func(q, C, P_prime, J, P):
         """
         This function returns P_{alpha-1} using the recursive solution.
         P_{alpha-1} = q_alpha * C + P_prime_{alpha-1} * J^T - J P_prime_{alpha-1} - J * P_alpha * J^T
@@ -75,7 +75,7 @@ class recursive_solution:
         return q * C + P_prime * J.T - J * P_prime - J * P * J.T
 
     @staticmethod
-    def P_prime(J, P, P_prime):
+    def P_prime_func(J, P, P_prime):
         """
         This function returns P_prime_{alpha-1} using the recursive solution.
         P_prime_{alpha-1} = J * P_alpha - P_alpha * J^T - J * P_prime_{alpha} * J^T
@@ -83,7 +83,7 @@ class recursive_solution:
         return J * P - P * J.T - J * P_prime * J.T
 
     @staticmethod
-    def q(J, Q_prime, Q, n, alpha):
+    def q_func(J, Q_prime, Q, n, alpha):
         """
         This function returns q_{alpha} using the recursive solution.
         q_{alpha} = (Tr(J * Q_prime_{alpha-1}) + Tr(J * Q_alpha * J^T)) / (n-alpha)
