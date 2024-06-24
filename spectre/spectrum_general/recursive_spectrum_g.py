@@ -2,12 +2,9 @@
 
 import numpy as np
 import torch
-from torch.func import jacrev
 import sympy as sp
 from sympy import Rational
-import os
-import timeit
-from functools import lru_cache
+
 
 
 class recursive_solution_g:
@@ -39,20 +36,20 @@ class recursive_solution_g:
         :return: None
         """
         for alpha in range(2 * self.n - 1, 0, -1):
-            self.P[alpha - 1] = recursive_solution_g.P(
+            self.P[alpha - 1] = recursive_solution_g.P_func(
                 self.q[alpha + 1], self.Y, self.G, self.P[alpha], self.P[alpha+1]
             )
             self.S[2 * self.n - 1 - alpha] = self.S_eqn(alpha, self.P[alpha - 1])
-            self.q[alpha] = recursive_solution_g.q(
+            self.q[alpha] = recursive_solution_g.q_func(
                 self.G, self.n, alpha, self.Y_inv, self.P[alpha], self.P[alpha-1]
             )
         self.S[2 * self.n - 1] = self.S_eqn(0, self.P[-1])
-        self.q[0] = recursive_solution_g.q(self.G, self.n, 0, self.Y_inv, self.P[0], self.P[-1])
+        self.q[0] = recursive_solution_g.q_func(self.G, self.n, 0, self.Y_inv, self.P[0], self.P[-1])
         self.S[2 * self.n] = self.S_eqn(-1, self.P[-1])  
         return None
 
     @staticmethod
-    def P(q, Y, G, P, P1):
+    def P_func(q, Y, G, P, P1):
         """
         This function returns P_{alpha-1} using the recursive solution.
         P_{alpha-1} = q_{alpha+1} * Y + G * P_alpha + P_alpha * G^T - G * P_{alpha+1} * G^T
@@ -60,7 +57,7 @@ class recursive_solution_g:
         return q * Y + G * P + P * G.T - G * P1 * G.T
 
     @staticmethod
-    def q(G, n, alpha, Y_inv, P, P1):
+    def q_func(G, n, alpha, Y_inv, P, P1):
         """
         This function returns q_{alpha} using the recursive solution.
         q_{alpha} = (Tr(Y^-1 * G * P_alpha * G^T) - Tr(Y^-1 * G * P_{alpha - 1} )) / (n-alpha/2)
