@@ -31,7 +31,8 @@ class recursive_g_torch:
             self.R[j] = self.R_func(j)
             self.S[j] = self.S_func(j)
             # print(self.t[j])
-            print(self.R[j])
+            if j==1:
+                print(self.R[j])
             # print(self.S[j])
         return None
     

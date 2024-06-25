@@ -33,7 +33,8 @@ class recursive_g:
             self.R[j] = self.R_func(j)
             self.S[j] = self.S_func(j)
             # print(self.t[j].evalf())
-            print(self.R[j].evalf())
+            if j==1:
+                print(self.R[j].evalf())
             # print(self.S[j].evalf())
         return None
     
