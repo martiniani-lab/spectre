@@ -32,12 +32,8 @@ class recursive_g:
             self.t[j] = self.t_func(j)
             self.R[j] = self.R_func(j)
             self.S[j] = self.S_func(j)
-            # print(self.t[j].evalf())
-            if j==1:
-                print(self.R[j].evalf())
-            # print(self.S[j].evalf())
         return None
-    
+
     def t_func(self, j):
         """
         This function returns q_{alpha} using the recursive solution.
@@ -46,9 +42,13 @@ class recursive_g:
         if j == 0:
             return sp.Rational("1")
         elif j == 1:
-            return - (self.Y_inv * self.G * self.R[j-1]).trace() * (sp.Rational("2") / j)
+            return -(self.Y_inv * self.G * self.R[j - 1]).trace() * (
+                sp.Rational("2") / j
+            )
         else:
-            return ((self.Y_inv * self.G * self.R[j-2] * self.G.T).trace() - (self.Y_inv * self.G * self.R[j-1]).trace()) * (sp.Rational("2") / j)
+            term1 = (self.Y_inv * self.G * self.R[j - 2] * self.G.T).trace()
+            term2 = (self.Y_inv * self.G * self.R[j - 1]).trace()
+            return (term1 - term2) * (sp.Rational("2") / j)
 
     def R_func(self, j):
         """
@@ -58,10 +58,16 @@ class recursive_g:
         if j == 0:
             return self.t[j] * self.Y
         elif j == 1:
-            print(self.t[j] * self.Y + self.G * self.R[j-1] + self.R[j-1] * self.G.T )
-            return self.t[j] * self.Y + self.G * self.R[j-1] + self.R[j-1] * self.G.T 
+            return (
+                self.t[j] * self.Y + self.G * self.R[j - 1] + self.R[j - 1] * self.G.T
+            )
         else:
-            return self.t[j] * self.Y + self.G * self.R[j-1] + self.R[j-1] * self.G.T - self.G * self.R[j-2] * self.G.T
+            return (
+                self.t[j] * self.Y
+                + self.G * self.R[j - 1]
+                + self.R[j - 1] * self.G.T
+                - self.G * self.R[j - 2] * self.G.T
+            )
 
     def S_func(self, j):
         """
@@ -70,7 +76,7 @@ class recursive_g:
         """
         S = self.R[j]
         for k in range(j):
-            S -= self.t[j-k] * self.S[k]
+            S -= self.t[j - k] * self.S[k]
         return S
 
 
