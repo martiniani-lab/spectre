@@ -70,7 +70,6 @@ class recursive_solution_g:
         This function returns S_{2n-1-alpha} using the recursive solution.
         S_{2n-1-alpha} = P_{alpha-1} - \sum_{k=0}^{2n-2-alpha} q_{alpha+k+1} S_{k}
         """
-        # write the function
         S = P
         for k in range(2 * self.n - 1 - alpha):
             S -= self.q[alpha + k + 1] * self.S[k]
