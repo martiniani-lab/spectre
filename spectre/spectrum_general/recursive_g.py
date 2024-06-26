@@ -3,7 +3,7 @@ import sympy as sp
 
 
 class recursive_g:
-    def __init__(self, G=None, Y=None):
+    def __init__(self, G=None, Y=None, n_max=None):
         """
         In this constructor function, we define and assign the different matrices "O"
         and list "l", upon which our spectrum solution depends.
@@ -17,9 +17,10 @@ class recursive_g:
         self.n = G.shape[0]
 
         """Define the solution lists"""
-        self.t = [sp.Rational("1") for _ in range(2 * self.n + 1)]
-        self.R = [sp.zeros(self.n, self.n) for _ in range(2 * self.n + 1)]
-        self.S = [sp.zeros(self.n, self.n) for _ in range(2 * self.n + 1)]
+        self.n_max = n_max if n_max is not None else 2 * self.n + 1
+        self.t = [sp.Rational("1") for _ in range(self.n_max)]
+        self.R = [sp.zeros(self.n, self.n) for _ in range(self.n_max)]
+        self.S = [sp.zeros(self.n, self.n) for _ in range(self.n_max)]
 
         """Find the solution matrices"""
         self.find_solution_recursive()
@@ -28,7 +29,7 @@ class recursive_g:
         """
         This function finds the recursive solution.
         """
-        for j in range(2 * self.n + 1):
+        for j in range(self.n_max):
             self.t[j] = self.t_func(j)
             self.R[j] = self.R_func(j)
             self.S[j] = self.S_func(j)
