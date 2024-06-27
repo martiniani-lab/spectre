@@ -8,6 +8,7 @@ We include examples of various biological dynamical systems:
 3. Wilson-Cowan 4D
 4. Stabilized Supralinear Network (SSN)
 5. Rock-Paper-Scissors-Lizard-Spock (RPSLS) (5 and 31 dimensional versions)
+6. Hawkes model
 
 ![](./figures/readme.svg)
 
@@ -145,6 +146,18 @@ The individual coefficients for auto-spectrum, using the element-wise solution, 
 ```
 
 The coefficients of the rational functions for the cross-spectrum and coherence can be obtained similarly.
+
+### Recursive solution for integrated covariance matrix
+The matrices containing the sums of contribution (of different orders/path lengths) to the integrated covariance matrix can be obtained using the recursive solution as follows,
+```python
+    from spectre.spectrum_general import recursive_g
+
+    # Integrated covariance matrix (S)
+    recursive_sol = recursive_g(G=G, Y=Y, n_max=n_max)
+    S = recursive_sol.S
+```
+
+
 
 ### Formulae for coefficients for the auto-spectrum
 To obtain the formulae for the coefficeints of the rational function of auto-spectrum for a specific structure of noise, check the following notebook,
