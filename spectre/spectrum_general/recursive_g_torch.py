@@ -3,7 +3,7 @@ import numpy as np
 
 
 class recursive_g_torch:
-    def __init__(self, G=None, Y=None):
+    def __init__(self, G=None, Y=None, n_max=None):
         """
         In this constructor function, we define and assign the different matrices "O"
         and list "l", upon which our spectrum solution depends.
@@ -16,9 +16,10 @@ class recursive_g_torch:
         self.n = G.shape[0]
 
         """Define the solution lists"""
-        self.t = [torch.ones(1) for _ in range(2 * self.n + 1)]
-        self.R = [torch.zeros(self.n, self.n) for _ in range(2 * self.n + 1)]
-        self.S = [torch.zeros(self.n, self.n) for _ in range(2 * self.n + 1)]
+        self.n_max = n_max if n_max is not None else 2 * self.n + 1
+        self.t = [torch.ones(1) for _ in range(self.n_max)]
+        self.R = [torch.zeros(self.n, self.n) for _ in range(self.n_max)]
+        self.S = [torch.zeros(self.n, self.n) for _ in range(self.n_max)]
 
         """Find the solution matrices"""
         self.find_solution_recursive()
@@ -27,7 +28,7 @@ class recursive_g_torch:
         """
         This function finds the recursive solution.
         """
-        for j in range(2 * self.n + 1):
+        for j in range(self.n_max):
             self.t[j] = self.t_func(j)
             self.R[j] = self.R_func(j)
             self.S[j] = self.S_func(j)
