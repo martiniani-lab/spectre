@@ -5,3 +5,4 @@ spectre/spectrum_general/__pycache__
 spectre/model/__pycache__
 spectre/utils/__pycache__
 examples/sympolic_psd_test.ipynb
+# examples/time_complexity.ipynb
