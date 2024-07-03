@@ -8,3 +8,4 @@ examples/sympolic_psd_test.ipynb
 # examples/time_complexity.ipynb
 # ignore all svg files
 *.svg
+**.DS_Store
