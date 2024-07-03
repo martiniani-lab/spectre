@@ -6,3 +6,5 @@ spectre/model/__pycache__
 spectre/utils/__pycache__
 examples/sympolic_psd_test.ipynb
 # examples/time_complexity.ipynb
+# ignore all svg files
+*.svg

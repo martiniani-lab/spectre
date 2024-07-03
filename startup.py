@@ -37,3 +37,7 @@ if not os.path.exists('figures/WC4D'):
     os.mkdir('figures/WC4D')
     print("Created figures/WC4D directory")
 
+if not os.path.exists('figures/recursive_g'):
+    os.mkdir('figures/recursive_g')
+    print("Created figures/recursive_g directory")
+
