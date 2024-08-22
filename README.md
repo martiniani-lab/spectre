@@ -12,7 +12,7 @@ We include examples of various biological dynamical systems:
 
 <!-- ![](./figures/readme.svg){width="200px"} -->
 <div style="text-align: center;">
-<img src="./figures/readme.svg" alt="Description" width="700px">
+<img src="./figures/readme.svg" alt="Description" width="800px">
 </div>
 
 ## Installation
