@@ -10,7 +10,10 @@ We include examples of various biological dynamical systems:
 5. Rock-Paper-Scissors-Lizard-Spock (RPSLS) (5 and 31 dimensional versions)
 6. Hawkes model
 
-![](./figures/readme.svg)
+<!-- ![](./figures/readme.svg){width="200px"} -->
+<div style="text-align: center;">
+<img src="./figures/readme.svg" alt="Description" width="700px">
+</div>
 
 ## Installation
 
@@ -62,20 +65,20 @@ Example code to calculate the power spectral density of a variable,
     idx = 0
 
     # Analytical solution (recursive algorithm)
-    recursive_solution = recursive_solution(model.J, model.L, model.S)
-    psd_recursive, _ = recursive_solution.auto_spectrum(idx, freq)
+    recursive_sol = recursive_solution(model.J, model.L, model.S)
+    psd_recursive, _ = recursive_sol.auto_spectrum(idx, freq)
 
     # Analytical solution (element-wise)
-    rat_solution = element_wise(model.J, model.L, model.S)
-    psd_rational, _ = rat_solution.auto_spectrum(idx, freq)
+    rat_sol = element_wise(model.J, model.L, model.S)
+    psd_rational, _ = rat_sol.auto_spectrum(idx, freq)
 
     # Analytical solution (matrix)
-    mat_solution = matrix_solution(model.J, model.L, model.S)
-    psd_matrix, _ = mat_solution.auto_spectrum(idx, freq)
+    mat_sol = matrix_solution(model.J, model.L, model.S)
+    psd_matrix, _ = mat_sol.auto_spectrum(idx, freq)
 
     # Simulation solution
-    sim_solution = sim_solution(model, sde_sim_method="euler")
-    psd_sim, f = sim_solution.simulation_spectrum(
+    sim_sol = sim_solution(model, sde_sim_method="euler")
+    psd_sim, f = sim_sol.simulation_spectrum(
         i=idx, ndivs=10, n_points=int(1e6), time=int(5e4), dt=0.04
     )
 ```
@@ -87,16 +90,16 @@ To calculate the cross-spectrum between any two variables,
     j = 1
 
     # Analytical solution (recursive algorithm)
-    cpsd_recursive, _ = recursive_solution.cross_spectrum(i, j, freq)
+    cpsd_recursive, _ = recursive_sol.cross_spectrum(i, j, freq)
 
     # Analytical solution (element-wise)
-    cpsd_rational, _ = rat_solution.cross_spectrum(i, j, freq)
+    cpsd_rational, _ = rat_sol.cross_spectrum(i, j, freq)
 
     # Analytical solution (matrix)
-    cpsd_matrix, _ = mat_solution.cross_spectrum(i, j, freq)
+    cpsd_matrix, _ = mat_sol.cross_spectrum(i, j, freq)
 
     # Simulation solution
-    cpsd_sim, f = sim_solution.simulation_spectrum(
+    cpsd_sim, f = sim_sol.simulation_spectrum(
         i=i, j=j, ndivs=10, n_points=int(1e6), time=int(5e4), dt=0.04
     )
 ```
@@ -108,16 +111,16 @@ To calculate the coherence between any two variables,
     j = 1
 
     # Analytical solution (recursive algorithm)
-    coh_recursive, _ = recursive_solution.coherence(i, j, freq)
+    coh_recursive, _ = recursive_sol.coherence(i, j, freq)
 
     # Analytical solution (elementwise)
-    coh_rational, _ = rat_solution.coherence(i, j, freq)
+    coh_rational, _ = rat_sol.coherence(i, j, freq)
 
     # Analytical solution (matrix)
-    coh_matrix, _ = mat_solution.coherence(i, j, freq)
+    coh_matrix, _ = mat_sol.coherence(i, j, freq)
 
     # Simulation solution
-    coh_sim, f = sim_solution.simulation_coherence(
+    coh_sim, f = sim_sol.simulation_coherence(
         i=i, j=j, ndivs=10, n_points=int(1e6), time=int(5e4), dt=0.04
     )
 ```
