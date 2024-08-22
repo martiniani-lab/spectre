@@ -62,20 +62,20 @@ Example code to calculate the power spectral density of a variable,
     idx = 0
 
     # Analytical solution (recursive algorithm)
-    recursive_model = recursive_solution(model.J, model.L, model.S)
-    psd_recursive, _ = recursive_model.auto_spectrum(idx, freq)
+    recursive_solution = recursive_solution(model.J, model.L, model.S)
+    psd_recursive, _ = recursive_solution.auto_spectrum(idx, freq)
 
     # Analytical solution (element-wise)
-    rat_model = element_wise(model.J, model.L, model.S)
-    psd_rational, _ = rat_model.auto_spectrum(idx, freq)
+    rat_solution = element_wise(model.J, model.L, model.S)
+    psd_rational, _ = rat_solution.auto_spectrum(idx, freq)
 
     # Analytical solution (matrix)
-    mat_model = matrix_solution(model.J, model.L, model.S)
-    psd_matrix, _ = mat_model.auto_spectrum(idx, freq)
+    mat_solution = matrix_solution(model.J, model.L, model.S)
+    psd_matrix, _ = mat_solution.auto_spectrum(idx, freq)
 
     # Simulation solution
-    sim_model = sim_solution(model, sde_sim_method="euler")
-    psd_sim, f = sim_model.simulation_spectrum(
+    sim_solution = sim_solution(model, sde_sim_method="euler")
+    psd_sim, f = sim_solution.simulation_spectrum(
         i=idx, ndivs=10, n_points=int(1e6), time=int(5e4), dt=0.04
     )
 ```
@@ -87,16 +87,16 @@ To calculate the cross-spectrum between any two variables,
     j = 1
 
     # Analytical solution (recursive algorithm)
-    cpsd_recursive, _ = recursive_model.cross_spectrum(i, j, freq)
+    cpsd_recursive, _ = recursive_solution.cross_spectrum(i, j, freq)
 
     # Analytical solution (element-wise)
-    cpsd_rational, _ = rat_model.cross_spectrum(i, j, freq)
+    cpsd_rational, _ = rat_solution.cross_spectrum(i, j, freq)
 
     # Analytical solution (matrix)
-    cpsd_matrix, _ = mat_model.cross_spectrum(i, j, freq)
+    cpsd_matrix, _ = mat_solution.cross_spectrum(i, j, freq)
 
     # Simulation solution
-    cpsd_sim, f = sim_model.simulation_spectrum(
+    cpsd_sim, f = sim_solution.simulation_spectrum(
         i=i, j=j, ndivs=10, n_points=int(1e6), time=int(5e4), dt=0.04
     )
 ```
@@ -108,16 +108,16 @@ To calculate the coherence between any two variables,
     j = 1
 
     # Analytical solution (recursive algorithm)
-    coh_recursive, _ = recursive_model.coherence(i, j, freq)
+    coh_recursive, _ = recursive_solution.coherence(i, j, freq)
 
     # Analytical solution (elementwise)
-    coh_rational, _ = rat_model.coherence(i, j, freq)
+    coh_rational, _ = rat_solution.coherence(i, j, freq)
 
     # Analytical solution (matrix)
-    coh_matrix, _ = mat_model.coherence(i, j, freq)
+    coh_matrix, _ = mat_solution.coherence(i, j, freq)
 
     # Simulation solution
-    coh_sim, f = sim_model.simulation_coherence(
+    coh_sim, f = sim_solution.simulation_coherence(
         i=i, j=j, ndivs=10, n_points=int(1e6), time=int(5e4), dt=0.04
     )
 ```
@@ -126,20 +126,20 @@ To calculate the coherence between any two variables,
 The spectral density, cross-spectrum and coherence can be expressed as rational functions of the frequency. We can obtain the coefficient matrices using the recursive solution as follows,
 ```python
     # Numerator
-    P = recursive_model.P
-    P_prime = recursive_model.P_prime
+    P = recursive_solution.P
+    P_prime = recursive_solution.P_prime
 
     # Denominator
-    q = recursive_model.q
+    q = recursive_solution.q
 ```
 
 The individual coefficients for auto-spectrum, using the element-wise solution, can be obtained as follows,
 ```python
     # Numerator
-    p = rat_model.p_auto_all_coeffs(i=idx)
+    p = rat_solution.p_auto_all_coeffs(i=idx)
 
     # Denominator
-    q = rat_model.q_all_coeffs()
+    q = rat_solution.q_all_coeffs()
 ```
 
 The coefficients of the rational functions for the cross-spectrum and coherence can be obtained similarly.
