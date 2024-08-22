@@ -1,6 +1,6 @@
 # spectre
 
-This repositry contains various algorithms (recursive, element-wise, matrix inverse and simulation) to calculate the power spectral density of stochastic dynamical models exhibiting fixed point solutions.
+This repository contains various algorithms (recursive, element-wise, matrix inverse and simulation) to calculate the power spectral density of stochastic dynamical models exhibiting fixed point solutions.
 
 We include examples of various biological dynamical systems:
 1. FitzHugh-Nagumo
@@ -49,16 +49,13 @@ Once this class is instantiated, the fixed point, the Jacobian matrix and the no
 Example code to calculate the power spectral density of a variable,
 ```python
     import torch
-    from spectre.spectrum_general import matrix_solution
-    from spectre.spectrum_general import sim_solution
-    from spectre.spectrum_general import element_wise
-    from spectre.spectrum_general import recursive_solution
+    from spectre.spectrum_general import matrix_solution, sim_solution, element_wise, recursive_solution
     from spectre.model import HR
 
     # Instantiate the model
     model = HR(eta1=0.001, I=5.5)
 
-    # Define the frequency vectors
+    # Define the frequencies at which to evaluate the spectrum
     freq = torch.logspace(np.log10(1e-4), np.log10(10), 100)
 
     # Index of the variable of which the spectrum is desired
@@ -68,7 +65,7 @@ Example code to calculate the power spectral density of a variable,
     recursive_model = recursive_solution(model.J, model.L, model.S)
     psd_recursive, _ = recursive_model.auto_spectrum(idx, freq)
 
-    # Analytical solution (elementwise)
+    # Analytical solution (element-wise)
     rat_model = element_wise(model.J, model.L, model.S)
     psd_rational, _ = rat_model.auto_spectrum(idx, freq)
 
@@ -92,7 +89,7 @@ To calculate the cross-spectrum between any two variables,
     # Analytical solution (recursive algorithm)
     cpsd_recursive, _ = recursive_model.cross_spectrum(i, j, freq)
 
-    # Analytical solution (elementwise)
+    # Analytical solution (element-wise)
     cpsd_rational, _ = rat_model.cross_spectrum(i, j, freq)
 
     # Analytical solution (matrix)
@@ -125,7 +122,7 @@ To calculate the coherence between any two variables,
     )
 ```
 
-### Coefficients of the rational function
+### Coefficients of the rational function solution
 The spectral density, cross-spectrum and coherence can be expressed as rational functions of the frequency. We can obtain the coefficient matrices using the recursive solution as follows,
 ```python
     # Numerator
@@ -147,7 +144,7 @@ The individual coefficients for auto-spectrum, using the element-wise solution, 
 
 The coefficients of the rational functions for the cross-spectrum and coherence can be obtained similarly.
 
-### Recursive solution for integrated covariance matrix
+### Recursive solution for the integrated covariance matrix
 The matrices containing the sums of contribution (of different orders/path lengths) to the integrated covariance matrix can be obtained using the recursive solution as follows,
 ```python
     from spectre.spectrum_general import recursive_g
@@ -160,7 +157,7 @@ The matrices containing the sums of contribution (of different orders/path lengt
 
 
 ### Formulae for coefficients for the auto-spectrum
-To obtain the formulae for the coefficeints of the rational function of auto-spectrum for a specific structure of noise, check the following notebook,
+To obtain the formulae for the coefficients of the rational function for the auto-spectrum for a specific structure of noise, check the following notebook,
 ```bash
     examples/symbolic_psd.ipynb
 ```
